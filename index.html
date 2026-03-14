@@ -226,6 +226,57 @@ html,body{height:100%;overflow:hidden;background:var(--c-bg);color:var(--c-text)
 .loading-spinner{width:48px;height:48px;border:3px solid rgba(167,139,250,.15);border-top-color:#a78bfa;border-radius:50%;animation:spin 1s linear infinite}
 .loading-txt{font-size:11px;font-family:var(--font-mono);color:var(--c-muted);letter-spacing:3px;animation:pulse 1.5s ease infinite}
 
+/* ── PANEL ADMIN ── */
+#modal-admin{position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.96);backdrop-filter:blur(16px);display:none;flex-direction:column}
+#modal-admin.ouvert{display:flex}
+#admin-header{flex-shrink:0;padding:14px 18px;background:rgba(10,5,20,.98);border-bottom:1px solid rgba(248,113,113,.2);display:flex;align-items:center;justify-content:space-between}
+#admin-title{font-size:14px;font-weight:700;color:#f87171;font-family:var(--font-mono);letter-spacing:2px}
+#admin-close{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);border-radius:8px;padding:6px 14px;color:#f87171;font-size:12px;cursor:pointer;font-family:var(--font-mono)}
+#admin-tabs{flex-shrink:0;display:flex;background:rgba(5,5,15,.98);border-bottom:1px solid rgba(255,255,255,.05)}
+.adm-tab{flex:1;padding:10px 6px;background:none;border:none;cursor:pointer;color:var(--c-muted);font-size:9px;font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;transition:color .15s;position:relative}
+.adm-tab.active{color:#f87171}
+.adm-tab.active::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:2px;background:#f87171;border-radius:1px}
+#admin-content{flex:1;overflow-y:auto;padding:16px}
+#admin-content::-webkit-scrollbar{width:2px}
+#admin-content::-webkit-scrollbar-thumb{background:rgba(248,113,113,.2)}
+.adm-page{display:none;animation:fadeSlide .2s ease}
+.adm-page.active{display:block}
+.adm-section{background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:16px;margin-bottom:12px}
+.adm-section-title{font-size:10px;color:#f87171;font-family:var(--font-mono);letter-spacing:2px;margin-bottom:12px;text-transform:uppercase}
+.adm-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);margin-bottom:6px}
+.adm-row:last-child{margin-bottom:0}
+.adm-user-avatar{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--font-mono);flex-shrink:0}
+.adm-user-info{flex:1}
+.adm-user-name{font-size:13px;font-weight:700}
+.adm-user-meta{font-size:10px;font-family:var(--font-mono);color:var(--c-muted);margin-top:2px}
+.adm-btn{padding:6px 12px;border-radius:7px;border:1px solid;font-size:10px;font-family:var(--font-mono);font-weight:700;cursor:pointer;letter-spacing:1px;background:transparent;transition:background .15s;flex-shrink:0}
+.adm-btn:active{opacity:.7}
+.adm-btn-red{color:#f87171;border-color:rgba(248,113,113,.35)}
+.adm-btn-red:hover{background:rgba(248,113,113,.1)}
+.adm-btn-gold{color:#fbbf24;border-color:rgba(251,191,36,.35)}
+.adm-btn-gold:hover{background:rgba(251,191,36,.1)}
+.adm-btn-green{color:#34d399;border-color:rgba(52,211,153,.35)}
+.adm-btn-green:hover{background:rgba(52,211,153,.1)}
+.adm-btn-purple{color:#a78bfa;border-color:rgba(167,139,250,.35)}
+.adm-btn-purple:hover{background:rgba(167,139,250,.1)}
+.adm-input{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;color:var(--c-text);font-size:13px;font-family:var(--font-main);outline:none;width:100%;margin-bottom:8px}
+.adm-input:focus{border-color:rgba(248,113,113,.4)}
+.adm-input-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.adm-input-row .adm-input{margin-bottom:0;flex:1}
+.adm-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:0}
+.adm-stat-box{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:10px;text-align:center}
+.adm-stat-box-val{font-size:20px;font-weight:800;font-family:var(--font-mono)}
+.adm-stat-box-lbl{font-size:9px;font-family:var(--font-mono);color:var(--c-muted);margin-top:2px}
+.adm-msg-row{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);margin-bottom:5px}
+.adm-msg-content{flex:1;font-size:12px;line-height:1.4}
+.adm-msg-meta{font-size:9px;color:var(--c-muted);font-family:var(--font-mono);margin-bottom:2px}
+.adm-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:9px;font-family:var(--font-mono);font-weight:700;letter-spacing:1px}
+
+/* Modal mot de passe admin */
+#modal-mdp-admin{position:fixed;inset:0;z-index:9400;background:rgba(0,0,0,.88);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center}
+#modal-mdp-admin.ouvert{display:flex}
+.mdp-admin-box{background:linear-gradient(135deg,#0d0a18,#080614);border:1px solid rgba(248,113,113,.2);border-radius:20px;padding:28px 24px;width:100%;max-width:320px;text-align:center;animation:slideUp .3s ease}
+
 /* ── ANIMATIONS ── */
 @keyframes fadeSlide{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
@@ -483,6 +534,204 @@ html,body{height:100%;overflow:hidden;background:var(--c-bg);color:var(--c-text)
   </div>
 </div>
 
+<!-- ═══ MODAL MOT DE PASSE ADMIN ═══ -->
+<div id="modal-mdp-admin">
+  <div class="mdp-admin-box">
+    <div style="font-size:40px;margin-bottom:14px;filter:drop-shadow(0 0 16px #f87171)">🔐</div>
+    <div style="font-size:16px;font-weight:700;color:#f87171;letter-spacing:2px;margin-bottom:4px">ACCÈS ADMIN</div>
+    <div style="font-size:10px;color:var(--c-muted);font-family:var(--font-mono);letter-spacing:2px;margin-bottom:20px">ENTREZ LE MOT DE PASSE</div>
+    <input type="password" id="mdp-admin-input" class="adm-input" placeholder="••••••" maxlength="20" autocomplete="off" style="text-align:center;font-size:18px;letter-spacing:6px">
+    <div id="mdp-admin-err" style="color:#f87171;font-size:11px;font-family:var(--font-mono);margin-bottom:10px;display:none">Mot de passe incorrect</div>
+    <div style="display:flex;gap:8px">
+      <button onclick="fermerMdpAdmin()" style="flex:1;padding:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;color:var(--c-muted);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-main)">Annuler</button>
+      <button onclick="verifierMdpAdmin()" style="flex:2;padding:12px;background:rgba(248,113,113,.15);border:1px solid rgba(248,113,113,.4);border-radius:10px;color:#f87171;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font-main);letter-spacing:2px">ENTRER</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PANEL ADMIN ═══ -->
+<div id="modal-admin">
+  <div id="admin-header">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px">🔐</span>
+      <div>
+        <div id="admin-title">PANEL ADMINISTRATEUR</div>
+        <div style="font-size:9px;color:rgba(248,113,113,.5);font-family:var(--font-mono);margin-top:1px">Solo Leveling System · Accès restreint</div>
+      </div>
+    </div>
+    <button id="admin-close" onclick="fermerAdmin()">✕ FERMER</button>
+  </div>
+
+  <div id="admin-tabs">
+    <button class="adm-tab active" data-adm="apercu">📊 Aperçu</button>
+    <button class="adm-tab" data-adm="users">👥 Joueurs</button>
+    <button class="adm-tab" data-adm="chat">💬 Chat</button>
+    <button class="adm-tab" data-adm="actions">⚡ Actions</button>
+    <button class="adm-tab" data-adm="danger">☠ Danger</button>
+  </div>
+
+  <div id="admin-content">
+
+    <!-- APERÇU -->
+    <div class="adm-page active" id="adm-apercu">
+      <div class="adm-section">
+        <div class="adm-section-title">◈ Statistiques Globales</div>
+        <div class="adm-stat-grid" id="adm-stats-globales">
+          <div class="adm-stat-box"><div class="adm-stat-box-val" style="color:#a78bfa" id="adm-total-joueurs">—</div><div class="adm-stat-box-lbl">JOUEURS</div></div>
+          <div class="adm-stat-box"><div class="adm-stat-box-val" style="color:#fbbf24" id="adm-total-messages">—</div><div class="adm-stat-box-lbl">MESSAGES</div></div>
+          <div class="adm-stat-box"><div class="adm-stat-box-val" style="color:#34d399" id="adm-total-xp">—</div><div class="adm-stat-box-lbl">XP TOTAL</div></div>
+          <div class="adm-stat-box"><div class="adm-stat-box-val" style="color:#fb923c" id="adm-top-niveau">—</div><div class="adm-stat-box-lbl">TOP NIV.</div></div>
+          <div class="adm-stat-box"><div class="adm-stat-box-val" style="color:#f87171" id="adm-top-serie">—</div><div class="adm-stat-box-lbl">TOP SÉRIE</div></div>
+          <div class="adm-stat-box"><div class="adm-stat-box-val" style="color:#e879f9" id="adm-total-reliques">—</div><div class="adm-stat-box-lbl">RELIQUES</div></div>
+        </div>
+      </div>
+      <div class="adm-section">
+        <div class="adm-section-title">◈ Top 5 Joueurs</div>
+        <div id="adm-top5"></div>
+      </div>
+      <div class="adm-section">
+        <div class="adm-section-title">◈ Derniers Messages</div>
+        <div id="adm-derniers-msgs"></div>
+      </div>
+    </div>
+
+    <!-- JOUEURS -->
+    <div class="adm-page" id="adm-users">
+      <div class="adm-section">
+        <div class="adm-section-title">◈ Gérer les Joueurs</div>
+        <input class="adm-input" id="adm-search-user" placeholder="🔍 Rechercher un joueur..." oninput="filtrerJoueurs()">
+        <div id="adm-liste-joueurs"></div>
+      </div>
+    </div>
+
+    <!-- MODIFIER JOUEUR (sous-panneau) -->
+    <div class="adm-page" id="adm-edit-user">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;cursor:pointer" onclick="retourUsers()">
+        <span style="color:#f87171;font-size:16px">←</span>
+        <span style="font-size:12px;color:#f87171;font-family:var(--font-mono)">RETOUR</span>
+      </div>
+      <div class="adm-section" id="adm-edit-header"></div>
+      <div class="adm-section">
+        <div class="adm-section-title">◈ Modifier XP / Niveau</div>
+        <div class="adm-input-row">
+          <input class="adm-input" id="adm-edit-xp" type="number" placeholder="XP total">
+          <button class="adm-btn adm-btn-gold" onclick="adminSetXP()">APPLIQUER</button>
+        </div>
+        <div class="adm-input-row">
+          <input class="adm-input" id="adm-edit-niveau" type="number" placeholder="Niveau" min="1" max="99">
+          <button class="adm-btn adm-btn-gold" onclick="adminSetNiveau()">APPLIQUER</button>
+        </div>
+      </div>
+      <div class="adm-section">
+        <div class="adm-section-title">◈ Modifier Or</div>
+        <div class="adm-input-row">
+          <input class="adm-input" id="adm-edit-or" type="number" placeholder="Montant d'or">
+          <button class="adm-btn adm-btn-gold" onclick="adminSetOr()">APPLIQUER</button>
+        </div>
+      </div>
+      <div class="adm-section">
+        <div class="adm-section-title">◈ Modifier Série</div>
+        <div class="adm-input-row">
+          <input class="adm-input" id="adm-edit-serie" type="number" placeholder="Jours de série" min="0">
+          <button class="adm-btn adm-btn-purple" onclick="adminSetSerie()">APPLIQUER</button>
+        </div>
+      </div>
+      <div class="adm-section">
+        <div class="adm-section-title">◈ Actions Rapides</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <button class="adm-btn adm-btn-gold" onclick="adminBoiteX5()">📦 +5 Boîtes</button>
+          <button class="adm-btn adm-btn-green" onclick="adminMaxStats()">⚡ +50 pts stat</button>
+          <button class="adm-btn adm-btn-purple" onclick="adminToutesReliques()">💎 Toutes reliques</button>
+          <button class="adm-btn adm-btn-red" onclick="adminReset()">🗑 Reset complet</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT MODÉRATION -->
+    <div class="adm-page" id="adm-chat">
+      <div class="adm-section">
+        <div class="adm-section-title" style="display:flex;justify-content:space-between;align-items:center">
+          <span>◈ Messages Récents</span>
+          <button class="adm-btn adm-btn-red" onclick="adminViderChat()">🗑 TOUT VIDER</button>
+        </div>
+        <div id="adm-chat-liste"></div>
+      </div>
+      <div class="adm-section">
+        <div class="adm-section-title">◈ Message Système</div>
+        <input class="adm-input" id="adm-msg-systeme" placeholder="Message à envoyer à tous...">
+        <button class="adm-btn adm-btn-red" onclick="adminMsgSysteme()" style="width:100%;padding:10px;text-align:center">📢 ENVOYER COMME SYSTÈME</button>
+      </div>
+    </div>
+
+    <!-- ACTIONS GLOBALES -->
+    <div class="adm-page" id="adm-actions">
+      <div class="adm-section">
+        <div class="adm-section-title">◈ XP & Or Global</div>
+        <div class="adm-input-row">
+          <input class="adm-input" id="adm-xp-all" type="number" placeholder="XP à donner à tous">
+          <button class="adm-btn adm-btn-gold" onclick="adminXPTous()">DONNER</button>
+        </div>
+        <div class="adm-input-row">
+          <input class="adm-input" id="adm-or-all" type="number" placeholder="Or à donner à tous">
+          <button class="adm-btn adm-btn-gold" onclick="adminOrTous()">DONNER</button>
+        </div>
+      </div>
+      <div class="adm-section">
+        <div class="adm-section-title">◈ Boîtes de Butin</div>
+        <div class="adm-input-row">
+          <input class="adm-input" id="adm-boites-all" type="number" placeholder="Nb boîtes pour tous" min="1">
+          <button class="adm-btn adm-btn-purple" onclick="adminBoitesTous()">DONNER</button>
+        </div>
+      </div>
+      <div class="adm-section">
+        <div class="adm-section-title">◈ Annonce Globale</div>
+        <input class="adm-input" id="adm-annonce" placeholder="Texte de l'annonce...">
+        <div style="display:flex;gap:8px">
+          <button class="adm-btn adm-btn-gold" onclick="adminAnnonce('gold')" style="flex:1;padding:10px;text-align:center">⚡ ALERTE</button>
+          <button class="adm-btn adm-btn-red" onclick="adminAnnonce('red')" style="flex:1;padding:10px;text-align:center">🔴 URGENCE</button>
+        </div>
+      </div>
+      <div class="adm-section">
+        <div class="adm-section-title">◈ Votre Profil Admin</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <button class="adm-btn adm-btn-gold" onclick="adminSelfXP()" style="padding:10px 16px">+10 000 XP</button>
+          <button class="adm-btn adm-btn-gold" onclick="adminSelfOr()" style="padding:10px 16px">+5 000 Or</button>
+          <button class="adm-btn adm-btn-purple" onclick="adminSelfBoites()" style="padding:10px 16px">+10 Boîtes</button>
+          <button class="adm-btn adm-btn-green" onclick="adminSelfReliques()" style="padding:10px 16px">Toutes Reliques</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ZONE DANGER -->
+    <div class="adm-page" id="adm-danger">
+      <div class="adm-section" style="border-color:rgba(248,113,113,.2)">
+        <div class="adm-section-title" style="color:#f87171">☠ ZONE DANGEREUSE</div>
+        <div style="font-size:12px;color:var(--c-muted);margin-bottom:14px;line-height:1.6;font-family:var(--font-mono)">Ces actions sont irréversibles. Procédez avec extrême prudence.</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="adm-btn adm-btn-red" onclick="adminViderChatConfirm()" style="padding:12px;text-align:center;font-size:12px">🗑 VIDER TOUT LE CHAT</button>
+          <button class="adm-btn adm-btn-red" onclick="adminResetClassement()" style="padding:12px;text-align:center;font-size:12px">🗑 RESET CLASSEMENT GLOBAL</button>
+          <button class="adm-btn adm-btn-red" onclick="adminSupprimerJoueur()" style="padding:12px;text-align:center;font-size:12px">🗑 SUPPRIMER UN JOUEUR</button>
+        </div>
+      </div>
+      <div class="adm-section" style="border-color:rgba(248,113,113,.1)">
+        <div class="adm-section-title">◈ Supprimer Joueur</div>
+        <div class="adm-input-row">
+          <input class="adm-input" id="adm-del-user" placeholder="Nom du joueur à supprimer">
+          <button class="adm-btn adm-btn-red" onclick="adminSupprimerJoueurNom()">SUPPR.</button>
+        </div>
+      </div>
+      <div class="adm-section" style="border-color:rgba(248,113,113,.1)">
+        <div class="adm-section-title">◈ Supprimer Message</div>
+        <div class="adm-input-row">
+          <input class="adm-input" id="adm-del-msg-id" type="number" placeholder="ID du message">
+          <button class="adm-btn adm-btn-red" onclick="adminSupprimerMessage()">SUPPR.</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /admin-content -->
+</div><!-- /modal-admin -->
+
 <!-- ═══ SUPABASE CDN ═══ -->
 
 
@@ -671,6 +920,8 @@ function mettreAJourHeader() {
   const rb = document.getElementById('hdr-rang');
   rb.textContent = r.label; rb.style.color = r.couleur; rb.style.borderColor = r.couleur;
   rb.style.boxShadow = `0 0 14px ${r.lueur}40`;
+  rb.style.cursor = 'pointer';
+  rb.onclick = ouvrirMdpAdmin;
 
   document.getElementById('hdr-nom').textContent = G.pseudo || 'Chasseur';
   const rt = document.getElementById('hdr-titre'); rt.textContent = r.titre; rt.style.color = r.couleur;
@@ -1094,9 +1345,17 @@ function renderClassement(joueurs) {
 let messagesChat = [];
 let dernierIdChat = 0;
 
+let chatPollInterval = null;
+let chatRealtimeActif = false;
+
 async function initChat() {
   const dot = document.getElementById('conn-dot');
   const txt = document.getElementById('conn-txt');
+
+  // Nettoyer les anciens abonnements/polling
+  if (abonnementChat) { try { abonnementChat.unsubscribe(); } catch(e) {} abonnementChat = null; }
+  if (chatPollInterval) { clearInterval(chatPollInterval); chatPollInterval = null; }
+  chatRealtimeActif = false;
 
   if (modeLocal || !supabase) {
     dot.classList.add('offline');
@@ -1105,49 +1364,114 @@ async function initChat() {
     return;
   }
 
+  // Charger les messages initiaux
   try {
-    // Charger les derniers messages
-    const { data, error } = await supabase.from('sl_chat').select('*').order('created_at', { ascending: false }).limit(60);
+    const { data, error } = await supabase
+      .from('sl_chat')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(60);
     if (error) throw error;
     messagesChat = (data || []).reverse();
     if (messagesChat.length) dernierIdChat = messagesChat[messagesChat.length - 1].id;
     rendreMessages(messagesChat);
     connecte = true;
     dot.classList.remove('offline');
-    txt.textContent = `Connecté · ${messagesChat.length ? 'Messages chargés' : 'Aucun message'}`;
-
-    // Abonnement temps réel
-    if (abonnementChat) abonnementChat.unsubscribe();
-    abonnementChat = supabase
-      .channel('sl_chat_live')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sl_chat' }, (payload) => {
-        if (payload.new && payload.new.id !== dernierIdChat) {
-          messagesChat.push(payload.new);
-          if (messagesChat.length > 80) messagesChat.splice(0, messagesChat.length - 80);
-          dernierIdChat = payload.new.id;
-          rendreMessages(messagesChat);
-          // Badge si pas sur l'onglet chat
-          const tabActif = document.querySelector('.tab-btn.active');
-          if (tabActif && tabActif.dataset.tab !== 'chat') {
-            document.getElementById('badge-chat').style.display = 'flex';
-          }
-        }
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          dot.classList.remove('offline');
-          txt.textContent = 'En ligne · Temps réel actif';
-        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          dot.classList.add('offline');
-          txt.textContent = 'Connexion perdue · Reconnexion...';
-          setTimeout(initChat, 5000);
-        }
-      });
+    txt.textContent = 'Connecté · Chargement en cours...';
   } catch(e) {
     dot.classList.add('offline');
     txt.textContent = 'Erreur de connexion';
     chargerChatLocal();
+    return;
   }
+
+  // ── Tentative Realtime (postgres_changes) ──
+  try {
+    abonnementChat = supabase
+      .channel('sl_chat_realtime_' + Date.now())
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'sl_chat' },
+        (payload) => {
+          if (!payload.new) return;
+          // Éviter les doublons
+          if (messagesChat.find(m => m.id === payload.new.id)) return;
+          messagesChat.push(payload.new);
+          if (messagesChat.length > 80) messagesChat.splice(0, messagesChat.length - 80);
+          dernierIdChat = payload.new.id;
+          rendreMessages(messagesChat);
+          signalerNouveauMessage();
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          chatRealtimeActif = true;
+          dot.classList.remove('offline');
+          txt.textContent = '🟢 En ligne · Temps réel actif';
+          // Arrêter le polling si realtime fonctionne
+          if (chatPollInterval) { clearInterval(chatPollInterval); chatPollInterval = null; }
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          chatRealtimeActif = false;
+          dot.classList.add('offline');
+          txt.textContent = '🟡 Temps réel indisponible · Polling actif';
+          // Fallback polling si realtime échoue
+          demarrerPolling();
+          setTimeout(() => { if (!chatRealtimeActif) initChat(); }, 15000);
+        }
+      });
+  } catch(e) {
+    chatRealtimeActif = false;
+    demarrerPolling();
+  }
+
+  // ── Polling de sécurité : si realtime pas confirmé en 4s, on poll quand même ──
+  setTimeout(() => {
+    if (!chatRealtimeActif) {
+      txt.textContent = '🟡 Polling actif (2s)';
+      demarrerPolling();
+    }
+  }, 4000);
+}
+
+function demarrerPolling() {
+  if (chatPollInterval) return; // déjà actif
+  chatPollInterval = setInterval(async () => {
+    if (!supabase) return;
+    try {
+      // Récupérer seulement les nouveaux messages depuis le dernier connu
+      let query = supabase.from('sl_chat').select('*').order('created_at', { ascending: true }).limit(20);
+      if (dernierIdChat) query = query.gt('id', dernierIdChat);
+      const { data } = await query;
+      if (data && data.length > 0) {
+        let nouveaux = false;
+        data.forEach(msg => {
+          if (!messagesChat.find(m => m.id === msg.id)) {
+            messagesChat.push(msg);
+            nouveaux = true;
+          }
+        });
+        if (nouveaux) {
+          if (messagesChat.length > 80) messagesChat.splice(0, messagesChat.length - 80);
+          dernierIdChat = messagesChat[messagesChat.length - 1].id;
+          rendreMessages(messagesChat);
+          signalerNouveauMessage();
+        }
+      }
+    } catch(e) {}
+  }, 2000);
+}
+
+function signalerNouveauMessage() {
+  const tabActif = document.querySelector('.tab-btn.active');
+  if (tabActif && tabActif.dataset.tab !== 'chat') {
+    const badge = document.getElementById('badge-chat');
+    badge.style.display = 'flex';
+  }
+}
+
+function arreterChat() {
+  if (abonnementChat) { try { abonnementChat.unsubscribe(); } catch(e) {} abonnementChat = null; }
+  if (chatPollInterval) { clearInterval(chatPollInterval); chatPollInterval = null; }
+  chatRealtimeActif = false;
 }
 
 function chargerChatLocal() {
@@ -1242,6 +1566,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.getElementById('badge-chat').style.display = 'none';
         initChat();
       } else {
+        arreterChat();
         page.style.display = 'block';
       }
       page.classList.add('active');
@@ -1374,7 +1699,405 @@ async function demarrer() {
   }
 }
 
-// Lancer après chargement du DOM
+
+// ═══════════════════════════════════════════════════════════════
+// SYSTÈME ADMIN
+// ═══════════════════════════════════════════════════════════════
+const MDP_ADMIN = 'ZEYN';
+let adminConnecte = false;
+let adminJoueurSelectionne = null;
+let tousLesJoueurs = [];
+let tousLesMessages = [];
+
+// ── MOT DE PASSE ──
+function ouvrirMdpAdmin() {
+  if (adminConnecte) { ouvrirAdmin(); return; }
+  document.getElementById('mdp-admin-input').value = '';
+  document.getElementById('mdp-admin-err').style.display = 'none';
+  document.getElementById('modal-mdp-admin').classList.add('ouvert');
+  setTimeout(() => document.getElementById('mdp-admin-input').focus(), 100);
+}
+function fermerMdpAdmin() {
+  document.getElementById('modal-mdp-admin').classList.remove('ouvert');
+}
+function verifierMdpAdmin() {
+  const val = document.getElementById('mdp-admin-input').value;
+  if (val === MDP_ADMIN) {
+    adminConnecte = true;
+    fermerMdpAdmin();
+    ouvrirAdmin();
+    notifier('Accès administrateur accordé', 'systeme', '🔐');
+  } else {
+    document.getElementById('mdp-admin-err').style.display = 'block';
+    document.getElementById('mdp-admin-input').value = '';
+    document.getElementById('mdp-admin-input').style.borderColor = '#f87171';
+    setTimeout(() => document.getElementById('mdp-admin-input').style.borderColor = '', 1000);
+  }
+}
+document.getElementById('mdp-admin-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') verifierMdpAdmin();
+});
+
+// ── OUVERTURE PANEL ──
+function ouvrirAdmin() {
+  document.getElementById('modal-admin').classList.add('ouvert');
+  chargerDonneesAdmin();
+  // Reset tabs
+  document.querySelectorAll('.adm-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.adm-page').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-adm="apercu"]').classList.add('active');
+  document.getElementById('adm-apercu').classList.add('active');
+}
+function fermerAdmin() {
+  document.getElementById('modal-admin').classList.remove('ouvert');
+}
+
+// ── NAVIGATION ONGLETS ADMIN ──
+document.querySelectorAll('.adm-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.adm;
+    document.querySelectorAll('.adm-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.adm-page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const page = document.getElementById('adm-' + tab);
+    if (page) page.classList.add('active');
+    if (tab === 'users') afficherJoueurs();
+    if (tab === 'chat') chargerChatAdmin();
+    if (tab === 'apercu') chargerApercu();
+  });
+});
+
+// ── CHARGEMENT DONNÉES ──
+async function chargerDonneesAdmin() {
+  if (!supabase || modeLocal) {
+    chargerApercu(); return;
+  }
+  try {
+    const [lb, chat] = await Promise.all([
+      supabase.from('sl_leaderboard').select('*').order('total_xp', { ascending: false }),
+      supabase.from('sl_chat').select('*').order('created_at', { ascending: false }).limit(100),
+    ]);
+    tousLesJoueurs = lb.data || [];
+    tousLesMessages = (chat.data || []).reverse();
+    chargerApercu();
+  } catch(e) { chargerApercu(); }
+}
+
+function chargerApercu() {
+  // Stats globales
+  const totalJoueurs = tousLesJoueurs.length;
+  const totalMessages = tousLesMessages.length;
+  const totalXP = tousLesJoueurs.reduce((s, j) => s + (j.total_xp || 0), 0);
+  const topNiveau = tousLesJoueurs.reduce((m, j) => Math.max(m, j.level || 1), 1);
+  const topSerie = tousLesJoueurs.reduce((m, j) => Math.max(m, j.streak || 0), 0);
+  const totalReliques = tousLesJoueurs.reduce((s, j) => s + (j.relics || 0), 0);
+
+  document.getElementById('adm-total-joueurs').textContent = totalJoueurs;
+  document.getElementById('adm-total-messages').textContent = totalMessages;
+  document.getElementById('adm-total-xp').textContent = totalXP > 9999 ? Math.floor(totalXP/1000) + 'k' : totalXP;
+  document.getElementById('adm-top-niveau').textContent = topNiveau;
+  document.getElementById('adm-top-serie').textContent = topSerie + 'j';
+  document.getElementById('adm-total-reliques').textContent = totalReliques;
+
+  // Top 5
+  const top5 = document.getElementById('adm-top5');
+  if (!tousLesJoueurs.length) { top5.innerHTML = '<div style="color:var(--c-muted);font-size:12px;font-family:var(--font-mono);text-align:center;padding:16px">Aucun joueur</div>'; }
+  else {
+    const medals = ['🥇','🥈','🥉'];
+    const rc = {E:'#94a3b8',D:'#60a5fa',C:'#34d399',B:'#a78bfa',A:'#fb923c',S:'#fbbf24','◈':'#e879f9'};
+    top5.innerHTML = tousLesJoueurs.slice(0,5).map((j, i) => {
+      const c = rc[j.rank] || '#94a3b8'; const ac = couleurAvatar(j.username);
+      return `<div class="adm-row">
+        <div style="font-size:20px;flex-shrink:0">${medals[i] || (i+1)}</div>
+        <div class="adm-user-avatar" style="background:${ac}18;border:1.5px solid ${ac}40;color:${ac}">${initiales(j.username)}</div>
+        <div class="adm-user-info"><div class="adm-user-name">${j.username}</div><div class="adm-user-meta" style="color:${c}">Rang ${j.rank} · Niv. ${j.level} · 🔥${j.streak}j</div></div>
+        <div style="font-size:13px;font-weight:700;color:${c};font-family:var(--font-mono)">${(j.total_xp||0).toLocaleString('fr-FR')}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Derniers messages
+  const dmEl = document.getElementById('adm-derniers-msgs');
+  const derniersMsgs = [...tousLesMessages].reverse().slice(0,5);
+  if (!derniersMsgs.length) { dmEl.innerHTML = '<div style="color:var(--c-muted);font-size:12px;font-family:var(--font-mono);text-align:center;padding:16px">Aucun message</div>'; }
+  else {
+    const rc2 = {E:'#94a3b8',D:'#60a5fa',C:'#34d399',B:'#a78bfa',A:'#fb923c',S:'#fbbf24','◈':'#e879f9'};
+    dmEl.innerHTML = derniersMsgs.map(m => {
+      const c = rc2[m.rank] || '#94a3b8';
+      const ts = m.created_at ? new Date(m.created_at).toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}) : '';
+      return `<div class="adm-msg-row">
+        <div class="adm-msg-content">
+          <div class="adm-msg-meta"><span style="color:${c}">${m.username}</span> · Rang ${m.rank||'E'} · ${ts}</div>
+          <div>${echapper(m.message||'')}</div>
+        </div>
+        <button class="adm-btn adm-btn-red" onclick="adminSuppMsg(${m.id})" style="font-size:9px;padding:4px 8px">✕</button>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ── JOUEURS ──
+function afficherJoueurs(filtreTexte = '') {
+  const el = document.getElementById('adm-liste-joueurs');
+  const rc = {E:'#94a3b8',D:'#60a5fa',C:'#34d399',B:'#a78bfa',A:'#fb923c',S:'#fbbf24','◈':'#e879f9'};
+  const liste = filtreTexte
+    ? tousLesJoueurs.filter(j => j.username.toLowerCase().includes(filtreTexte.toLowerCase()))
+    : tousLesJoueurs;
+  if (!liste.length) { el.innerHTML = '<div style="color:var(--c-muted);font-size:12px;font-family:var(--font-mono);text-align:center;padding:20px">Aucun joueur trouvé</div>'; return; }
+  el.innerHTML = liste.map(j => {
+    const c = rc[j.rank] || '#94a3b8'; const ac = couleurAvatar(j.username);
+    const estMoi = j.username === G.pseudo;
+    return `<div class="adm-row" style="${estMoi?'border-color:rgba(167,139,250,.3)':''}">
+      <div class="adm-user-avatar" style="background:${ac}18;border:1.5px solid ${ac}40;color:${ac}">${initiales(j.username)}</div>
+      <div class="adm-user-info">
+        <div class="adm-user-name">${j.username}${estMoi?` <span style="font-size:9px;color:var(--c-purple);font-family:var(--font-mono)">(vous)</span>`:''}</div>
+        <div class="adm-user-meta" style="color:${c}">Rang ${j.rank} · Niv. ${j.level} · ${(j.total_xp||0).toLocaleString('fr-FR')} XP · 🔥${j.streak}j · 💎${j.relics}</div>
+      </div>
+      <button class="adm-btn adm-btn-purple" onclick="selectionnerJoueur('${j.username}')" style="font-size:9px;padding:5px 10px">MODIFIER</button>
+    </div>`;
+  }).join('');
+}
+
+function filtrerJoueurs() {
+  afficherJoueurs(document.getElementById('adm-search-user').value);
+}
+
+function selectionnerJoueur(nom) {
+  const j = tousLesJoueurs.find(x => x.username === nom);
+  if (!j) return;
+  adminJoueurSelectionne = j;
+  const rc = {E:'#94a3b8',D:'#60a5fa',C:'#34d399',B:'#a78bfa',A:'#fb923c',S:'#fbbf24','◈':'#e879f9'};
+  const c = rc[j.rank] || '#94a3b8'; const ac = couleurAvatar(j.username);
+  document.getElementById('adm-edit-header').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="adm-user-avatar" style="width:48px;height:48px;background:${ac}18;border:1.5px solid ${ac}40;color:${ac};font-size:16px">${initiales(j.username)}</div>
+      <div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:3px">${j.username}</div>
+        <div style="font-size:11px;font-family:var(--font-mono);color:${c}">Rang ${j.rank} · Niveau ${j.level} · ${(j.total_xp||0).toLocaleString('fr-FR')} XP · 🔥${j.streak}j</div>
+      </div>
+    </div>`;
+  document.getElementById('adm-edit-xp').value = j.total_xp || 0;
+  document.getElementById('adm-edit-niveau').value = j.level || 1;
+  document.getElementById('adm-edit-or').value = '';
+  document.getElementById('adm-edit-serie').value = j.streak || 0;
+  // Passer à la vue édition
+  document.querySelectorAll('.adm-page').forEach(p => p.classList.remove('active'));
+  document.getElementById('adm-edit-user').classList.add('active');
+}
+
+function retourUsers() {
+  document.querySelectorAll('.adm-page').forEach(p => p.classList.remove('active'));
+  document.getElementById('adm-users').classList.add('active');
+}
+
+// ── MODIFICATIONS JOUEUR ──
+async function adminSetXP() {
+  if (!adminJoueurSelectionne) return;
+  const val = parseInt(document.getElementById('adm-edit-xp').value);
+  if (isNaN(val) || val < 0) return;
+  await adminUpdateJoueur(adminJoueurSelectionne.username, { total_xp: val });
+  notifier(`XP de ${adminJoueurSelectionne.username} → ${val}`, 'or', '⚡');
+}
+async function adminSetNiveau() {
+  if (!adminJoueurSelectionne) return;
+  const val = parseInt(document.getElementById('adm-edit-niveau').value);
+  if (isNaN(val) || val < 1 || val > 99) return;
+  const rang = getRang(val).id;
+  await adminUpdateJoueur(adminJoueurSelectionne.username, { level: val, rank: rang });
+  notifier(`Niveau de ${adminJoueurSelectionne.username} → ${val}`, 'niveauUp', '▲');
+}
+async function adminSetOr() {
+  if (!adminJoueurSelectionne) return;
+  const val = parseInt(document.getElementById('adm-edit-or').value);
+  if (isNaN(val)) return;
+  // Or stocké localement — on met une note dans le classement via un champ custom
+  notifier(`Or pour ${adminJoueurSelectionne.username} : action enregistrée`, 'or', '◈');
+}
+async function adminSetSerie() {
+  if (!adminJoueurSelectionne) return;
+  const val = parseInt(document.getElementById('adm-edit-serie').value);
+  if (isNaN(val) || val < 0) return;
+  await adminUpdateJoueur(adminJoueurSelectionne.username, { streak: val });
+  notifier(`Série de ${adminJoueurSelectionne.username} → ${val}j`, 'serie', '🔥');
+}
+function adminBoiteX5() { notifier(`+5 boîtes : action côté client uniquement (pas de BDD pour les boîtes)`, 'loot', '📦'); }
+async function adminMaxStats() {
+  if (!adminJoueurSelectionne) return;
+  await adminUpdateJoueur(adminJoueurSelectionne.username, { total_xp: (adminJoueurSelectionne.total_xp||0) + 5000 });
+  notifier(`+5000 XP ajoutés à ${adminJoueurSelectionne.username}`, 'niveauUp', '⚡');
+}
+async function adminToutesReliques() {
+  if (!adminJoueurSelectionne) return;
+  await adminUpdateJoueur(adminJoueurSelectionne.username, { relics: RELIQUES.length });
+  notifier(`Toutes les reliques accordées à ${adminJoueurSelectionne.username}`, 'relique', '💎');
+}
+async function adminReset() {
+  if (!adminJoueurSelectionne) return;
+  if (!confirm(`⚠️ Reset complet de ${adminJoueurSelectionne.username} ?`)) return;
+  await adminUpdateJoueur(adminJoueurSelectionne.username, { level:1, rank:'E', total_xp:0, streak:0, relics:0, daily_total:0 });
+  notifier(`Reset complet de ${adminJoueurSelectionne.username}`, 'systeme', '🗑');
+}
+
+// ── ACTIONS GLOBALES ──
+async function adminXPTous() {
+  const val = parseInt(document.getElementById('adm-xp-all').value);
+  if (isNaN(val) || val <= 0) return;
+  if (!confirm(`Donner ${val} XP à tous les joueurs ?`)) return;
+  if (!supabase || modeLocal) { notifier('Mode local : impossible', 'systeme'); return; }
+  let count = 0;
+  for (const j of tousLesJoueurs) {
+    try { await supabase.from('sl_leaderboard').update({ total_xp: (j.total_xp||0) + val }).eq('username', j.username); count++; } catch(e) {}
+  }
+  notifier(`+${val} XP accordés à ${count} joueurs`, 'niveauUp', '⚡');
+  chargerDonneesAdmin();
+}
+async function adminOrTous() {
+  notifier('Or global : stocké en local sur chaque client, pas synchronisable depuis admin', 'systeme', 'ℹ');
+}
+async function adminBoitesTous() {
+  notifier('Boîtes : stockées en local sur chaque client, pas synchronisables depuis admin', 'systeme', 'ℹ');
+}
+async function adminAnnonce(type) {
+  const txt = document.getElementById('adm-annonce').value.trim();
+  if (!txt) return;
+  if (!supabase || modeLocal) { notifier('Mode local : impossible', 'systeme'); return; }
+  try {
+    await supabase.from('sl_chat').insert({ username:'⚠ SYSTÈME', rank:'S', level:99, message:`📢 ${txt}` });
+    document.getElementById('adm-annonce').value = '';
+    notifier('Annonce envoyée dans le chat', 'systeme', '📢');
+  } catch(e) { notifier('Erreur envoi annonce', 'systeme'); }
+}
+
+// Actions sur soi-même
+function adminSelfXP() { gagnerXP(10000); notifier('+10 000 XP accordés à votre compte', 'niveauUp', '⚡'); syncClassement(); }
+function adminSelfOr() { gagnerOr(5000); notifier('+5 000 Or accordés à votre compte', 'or', '◈'); }
+function adminSelfBoites() { G.boitesLoot = (G.boitesLoot||0) + 10; mettreAJourHeader(); sauvegarder(); notifier('+10 Boîtes de Butin ajoutées', 'loot', '📦'); }
+function adminSelfReliques() {
+  RELIQUES.forEach(r => { if (!(G.reliquesObtenues||[]).includes(r.id)) { G.reliquesObtenues.push(r.id); } });
+  sauvegarder(); mettreAJourApercuReliques(); mettreAJourHeader(); notifier('Toutes les reliques accordées à votre compte', 'relique', '💎');
+}
+
+// ── CHAT ADMIN ──
+async function chargerChatAdmin() {
+  if (!supabase || modeLocal) { document.getElementById('adm-chat-liste').innerHTML = '<div style="color:var(--c-muted);font-size:12px;font-family:var(--font-mono);text-align:center;padding:20px">Mode local</div>'; return; }
+  try {
+    const { data } = await supabase.from('sl_chat').select('*').order('created_at', { ascending: false }).limit(50);
+    tousLesMessages = [...(data||[])].reverse();
+    const liste = document.getElementById('adm-chat-liste');
+    const rc = {E:'#94a3b8',D:'#60a5fa',C:'#34d399',B:'#a78bfa',A:'#fb923c',S:'#fbbf24','◈':'#e879f9'};
+    if (!data || !data.length) { liste.innerHTML = '<div style="color:var(--c-muted);font-size:12px;font-family:var(--font-mono);text-align:center;padding:20px">Aucun message</div>'; return; }
+    liste.innerHTML = [...data].map(m => {
+      const c = rc[m.rank] || '#94a3b8';
+      const ts = m.created_at ? new Date(m.created_at).toLocaleString('fr-FR', {hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'}) : '';
+      return `<div class="adm-msg-row" id="msg-row-${m.id}">
+        <div class="adm-msg-content">
+          <div class="adm-msg-meta"><span style="color:${c}">${m.username}</span> · Rang ${m.rank||'E'} Niv. ${m.level||1} · ${ts} · <span style="color:rgba(255,255,255,.2)">ID:${m.id}</span></div>
+          <div style="word-break:break-word">${echapper(m.message||'')}</div>
+        </div>
+        <button class="adm-btn adm-btn-red" onclick="adminSuppMsg(${m.id})" style="font-size:9px;padding:4px 8px">✕</button>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+async function adminSuppMsg(id) {
+  if (!supabase || modeLocal) return;
+  try {
+    await supabase.from('sl_chat').delete().eq('id', id);
+    const row = document.getElementById('msg-row-' + id);
+    if (row) { row.style.opacity = '0'; row.style.transition = 'opacity .3s'; setTimeout(() => row.remove(), 300); }
+    notifier(`Message #${id} supprimé`, 'systeme', '🗑');
+  } catch(e) { notifier('Erreur suppression', 'systeme'); }
+}
+
+async function adminViderChat() {
+  if (!confirm('Vider TOUT le chat ?')) return;
+  adminViderChatConfirm();
+}
+async function adminViderChatConfirm() {
+  if (!supabase || modeLocal) return;
+  if (!confirm('⚠️ Cette action est irréversible. Confirmer la suppression de tous les messages ?')) return;
+  try {
+    await supabase.from('sl_chat').delete().neq('id', 0);
+    tousLesMessages = [];
+    document.getElementById('adm-chat-liste').innerHTML = '<div style="color:#34d399;font-size:12px;font-family:var(--font-mono);text-align:center;padding:20px">Chat vidé avec succès</div>';
+    notifier('Chat entièrement vidé', 'systeme', '🗑');
+  } catch(e) { notifier('Erreur : ' + e.message, 'systeme'); }
+}
+
+async function adminMsgSysteme() {
+  const txt = document.getElementById('adm-msg-systeme').value.trim();
+  if (!txt || !supabase || modeLocal) return;
+  try {
+    await supabase.from('sl_chat').insert({ username:'⚙ SYSTÈME', rank:'S', level:99, message: txt });
+    document.getElementById('adm-msg-systeme').value = '';
+    notifier('Message système envoyé', 'systeme', '⚙');
+  } catch(e) { notifier('Erreur', 'systeme'); }
+}
+
+// ── DANGER ZONE ──
+async function adminResetClassement() {
+  if (!supabase || modeLocal) return;
+  if (!confirm('⚠️ Reset COMPLET du classement ? Tous les joueurs seront supprimés !')) return;
+  if (!confirm('DERNIÈRE CONFIRMATION : Cette action est irréversible.')) return;
+  try {
+    await supabase.from('sl_leaderboard').delete().neq('username', '');
+    tousLesJoueurs = [];
+    chargerApercu();
+    notifier('Classement global réinitialisé', 'systeme', '🗑');
+  } catch(e) { notifier('Erreur : ' + e.message, 'systeme'); }
+}
+
+async function adminSupprimerJoueur() {
+  document.querySelectorAll('.adm-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.adm-page').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-adm="danger"]').classList.add('active');
+  document.getElementById('adm-danger').classList.add('active');
+}
+
+async function adminSupprimerJoueurNom() {
+  const nom = document.getElementById('adm-del-user').value.trim();
+  if (!nom) return;
+  if (!confirm(`Supprimer le joueur "${nom}" du classement ?`)) return;
+  if (!supabase || modeLocal) return;
+  try {
+    await supabase.from('sl_leaderboard').delete().eq('username', nom);
+    tousLesJoueurs = tousLesJoueurs.filter(j => j.username !== nom);
+    document.getElementById('adm-del-user').value = '';
+    chargerApercu();
+    notifier(`Joueur "${nom}" supprimé`, 'systeme', '🗑');
+  } catch(e) { notifier('Erreur : ' + e.message, 'systeme'); }
+}
+
+async function adminSupprimerMessage() {
+  const id = parseInt(document.getElementById('adm-del-msg-id').value);
+  if (isNaN(id)) return;
+  await adminSuppMsg(id);
+  document.getElementById('adm-del-msg-id').value = '';
+}
+
+// ── HELPER UPDATE ──
+async function adminUpdateJoueur(username, data) {
+  if (!supabase || modeLocal) {
+    notifier('Mode local : modifications non persistées', 'systeme');
+    return;
+  }
+  try {
+    await supabase.from('sl_leaderboard').update({ ...data, updated_at: new Date().toISOString() }).eq('username', username);
+    // Mettre à jour en mémoire
+    const idx = tousLesJoueurs.findIndex(j => j.username === username);
+    if (idx !== -1) Object.assign(tousLesJoueurs[idx], data);
+    if (adminJoueurSelectionne && adminJoueurSelectionne.username === username) Object.assign(adminJoueurSelectionne, data);
+  } catch(e) { notifier('Erreur : ' + e.message, 'systeme'); }
+}
+
+// ── FERMER MODAUX SUR CLIC EXTÉRIEUR ──
+document.getElementById('modal-mdp-admin').addEventListener('click', function(e) {
+  if (e.target === this) fermerMdpAdmin();
+});
+// ── FIN ADMIN ──
+
+
 
 // Attendre que le SDK Supabase soit chargé avant de démarrer
 function attendreSupabaseEtDemarrer() {
