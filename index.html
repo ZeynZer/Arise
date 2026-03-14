@@ -44,14 +44,30 @@ CREATE TABLE IF NOT EXISTS sl_leaderboard (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Table des commandes admin (pour donner récompenses aux clients)
+CREATE TABLE IF NOT EXISTS sl_admin_commands (
+  id BIGSERIAL PRIMARY KEY,
+  target TEXT NOT NULL,        -- 'all' ou nom du joueur
+  type TEXT NOT NULL,          -- 'boites','xp','or','reliques','reset','ban'
+  value INTEGER DEFAULT 0,
+  data JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '7 days')
+);
+
 ALTER TABLE sl_chat ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sl_leaderboard ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sl_admin_commands ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Lecture publique chat" ON sl_chat FOR SELECT USING (true);
-CREATE POLICY "Insertion publique chat" ON sl_chat FOR INSERT WITH CHECK (true);
-CREATE POLICY "Lecture publique lb" ON sl_leaderboard FOR SELECT USING (true);
-CREATE POLICY "Upsert publique lb" ON sl_leaderboard FOR INSERT WITH CHECK (true);
-CREATE POLICY "Update publique lb" ON sl_leaderboard FOR UPDATE USING (true);
+CREATE POLICY "public" ON sl_chat FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "public" ON sl_leaderboard FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "public" ON sl_admin_commands FOR ALL USING (true) WITH CHECK (true);
+
+-- Activer Realtime
+ALTER TABLE sl_chat REPLICA IDENTITY FULL;
+ALTER TABLE sl_admin_commands REPLICA IDENTITY FULL;
+ALTER PUBLICATION supabase_realtime ADD TABLE sl_chat;
+ALTER PUBLICATION supabase_realtime ADD TABLE sl_admin_commands;
 
 -->
 
@@ -1347,12 +1363,14 @@ let dernierIdChat = 0;
 
 let chatPollInterval = null;
 let chatRealtimeActif = false;
+let chatVisible = false;
 
 async function initChat() {
+  chatVisible = true;
   const dot = document.getElementById('conn-dot');
   const txt = document.getElementById('conn-txt');
 
-  // Nettoyer les anciens abonnements/polling
+  // Toujours nettoyer avant de réinitialiser
   if (abonnementChat) { try { abonnementChat.unsubscribe(); } catch(e) {} abonnementChat = null; }
   if (chatPollInterval) { clearInterval(chatPollInterval); chatPollInterval = null; }
   chatRealtimeActif = false;
@@ -1361,39 +1379,38 @@ async function initChat() {
     dot.classList.add('offline');
     txt.textContent = 'Mode local · Pas de temps réel';
     chargerChatLocal();
+    // Polling toutes les 2s même en mode local (localStorage partagé)
+    chatPollInterval = setInterval(chargerChatLocal, 2000);
     return;
   }
 
-  // Charger les messages initiaux
+  // 1. Chargement initial
   try {
     const { data, error } = await supabase
-      .from('sl_chat')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(60);
+      .from('sl_chat').select('*')
+      .order('created_at', { ascending: false }).limit(60);
     if (error) throw error;
     messagesChat = (data || []).reverse();
     if (messagesChat.length) dernierIdChat = messagesChat[messagesChat.length - 1].id;
     rendreMessages(messagesChat);
-    connecte = true;
     dot.classList.remove('offline');
-    txt.textContent = 'Connecté · Chargement en cours...';
+    txt.textContent = 'Connecté · Abonnement en cours...';
   } catch(e) {
     dot.classList.add('offline');
-    txt.textContent = 'Erreur de connexion';
-    chargerChatLocal();
+    txt.textContent = 'Erreur · Polling de secours actif';
+    // Polling de secours immédiat
+    demarrerPollingChat();
     return;
   }
 
-  // ── Tentative Realtime (postgres_changes) ──
+  // 2. Realtime WebSocket
   try {
     abonnementChat = supabase
-      .channel('sl_chat_realtime_' + Date.now())
+      .channel('chat_live_' + Date.now())
       .on('postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'sl_chat' },
         (payload) => {
           if (!payload.new) return;
-          // Éviter les doublons
           if (messagesChat.find(m => m.id === payload.new.id)) return;
           messagesChat.push(payload.new);
           if (messagesChat.length > 80) messagesChat.splice(0, messagesChat.length - 80);
@@ -1406,47 +1423,44 @@ async function initChat() {
         if (status === 'SUBSCRIBED') {
           chatRealtimeActif = true;
           dot.classList.remove('offline');
-          txt.textContent = '🟢 En ligne · Temps réel actif';
-          // Arrêter le polling si realtime fonctionne
+          txt.textContent = '🟢 Temps réel actif';
+          // Arrêter le polling si realtime OK
           if (chatPollInterval) { clearInterval(chatPollInterval); chatPollInterval = null; }
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        } else if (['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(status)) {
           chatRealtimeActif = false;
           dot.classList.add('offline');
-          txt.textContent = '🟡 Temps réel indisponible · Polling actif';
-          // Fallback polling si realtime échoue
-          demarrerPolling();
-          setTimeout(() => { if (!chatRealtimeActif) initChat(); }, 15000);
+          txt.textContent = '🟡 Polling 2s actif';
+          demarrerPollingChat();
+          // Retry realtime dans 10s
+          setTimeout(() => { if (chatVisible && !chatRealtimeActif) initChat(); }, 10000);
         }
       });
   } catch(e) {
-    chatRealtimeActif = false;
-    demarrerPolling();
+    demarrerPollingChat();
   }
 
-  // ── Polling de sécurité : si realtime pas confirmé en 4s, on poll quand même ──
+  // 3. Sécurité : si realtime pas confirmé en 5s → polling quand même
   setTimeout(() => {
-    if (!chatRealtimeActif) {
-      txt.textContent = '🟡 Polling actif (2s)';
-      demarrerPolling();
+    if (!chatRealtimeActif && chatVisible) {
+      txt.textContent = '🟡 Polling 2s actif';
+      demarrerPollingChat();
     }
-  }, 4000);
+  }, 5000);
 }
 
-function demarrerPolling() {
-  if (chatPollInterval) return; // déjà actif
+function demarrerPollingChat() {
+  if (chatPollInterval) return;
   chatPollInterval = setInterval(async () => {
-    if (!supabase) return;
+    if (!supabase || !chatVisible) return;
     try {
-      // Récupérer seulement les nouveaux messages depuis le dernier connu
-      let query = supabase.from('sl_chat').select('*').order('created_at', { ascending: true }).limit(20);
-      if (dernierIdChat) query = query.gt('id', dernierIdChat);
-      const { data } = await query;
+      let q = supabase.from('sl_chat').select('*').order('created_at', { ascending: true }).limit(15);
+      if (dernierIdChat) q = q.gt('id', dernierIdChat);
+      const { data } = await q;
       if (data && data.length > 0) {
         let nouveaux = false;
         data.forEach(msg => {
           if (!messagesChat.find(m => m.id === msg.id)) {
-            messagesChat.push(msg);
-            nouveaux = true;
+            messagesChat.push(msg); nouveaux = true;
           }
         });
         if (nouveaux) {
@@ -1460,18 +1474,18 @@ function demarrerPolling() {
   }, 2000);
 }
 
-function signalerNouveauMessage() {
-  const tabActif = document.querySelector('.tab-btn.active');
-  if (tabActif && tabActif.dataset.tab !== 'chat') {
-    const badge = document.getElementById('badge-chat');
-    badge.style.display = 'flex';
-  }
-}
-
 function arreterChat() {
+  chatVisible = false;
   if (abonnementChat) { try { abonnementChat.unsubscribe(); } catch(e) {} abonnementChat = null; }
   if (chatPollInterval) { clearInterval(chatPollInterval); chatPollInterval = null; }
   chatRealtimeActif = false;
+}
+
+function signalerNouveauMessage() {
+  const tabActif = document.querySelector('.tab-btn.active');
+  if (tabActif && tabActif.dataset.tab !== 'chat') {
+    document.getElementById('badge-chat').style.display = 'flex';
+  }
 }
 
 function chargerChatLocal() {
@@ -1640,12 +1654,18 @@ document.getElementById('ob-nom').addEventListener('keydown', e => {
 function lancerApp() {
   const r = getRang(G.niveau);
   document.documentElement.style.setProperty('--rank-color', r.couleur);
+  if (!G.premierLogin) { G.premierLogin = new Date().toISOString(); sauvegarder(); }
   mettreAJourHeader();
   afficherStats();
   afficherQuetes();
   mettreAJourApercuReliques();
   verifierDeblocageReliques();
   syncClassement();
+  // Charger et s'abonner aux commandes admin
+  setTimeout(() => {
+    chargerCommandesAdmin();
+    abonnerCommandesAdmin();
+  }, 1500);
 
   setTimeout(() => notifier('Système initialisé. Bienvenue, Chasseur.', 'systeme', '👁'), 600);
   if (G.serie > 1) setTimeout(() => notifier(`Série de ${G.serie} jours active !`, 'serie', '🔥'), 1400);
@@ -1904,14 +1924,16 @@ async function adminSetNiveau() {
   if (isNaN(val) || val < 1 || val > 99) return;
   const rang = getRang(val).id;
   await adminUpdateJoueur(adminJoueurSelectionne.username, { level: val, rank: rang });
+  // Envoyer XP correspondant si c'est le joueur actuel
+  if (adminJoueurSelectionne.username === G.pseudo) { G.niveau = val; G.rang = rang; mettreAJourHeader(); sauvegarder(); }
   notifier(`Niveau de ${adminJoueurSelectionne.username} → ${val}`, 'niveauUp', '▲');
 }
 async function adminSetOr() {
   if (!adminJoueurSelectionne) return;
   const val = parseInt(document.getElementById('adm-edit-or').value);
-  if (isNaN(val)) return;
-  // Or stocké localement — on met une note dans le classement via un champ custom
-  notifier(`Or pour ${adminJoueurSelectionne.username} : action enregistrée`, 'or', '◈');
+  if (isNaN(val) || val < 0) return;
+  const ok = await envoyerCommandeAdmin(adminJoueurSelectionne.username, 'or', val);
+  if (ok) notifier(`+${val} Or envoyé à ${adminJoueurSelectionne.username}`, 'or', '◈');
 }
 async function adminSetSerie() {
   if (!adminJoueurSelectionne) return;
@@ -1920,62 +1942,93 @@ async function adminSetSerie() {
   await adminUpdateJoueur(adminJoueurSelectionne.username, { streak: val });
   notifier(`Série de ${adminJoueurSelectionne.username} → ${val}j`, 'serie', '🔥');
 }
-function adminBoiteX5() { notifier(`+5 boîtes : action côté client uniquement (pas de BDD pour les boîtes)`, 'loot', '📦'); }
+async function adminBoiteX5() {
+  if (!adminJoueurSelectionne) return;
+  const ok = await envoyerCommandeAdmin(adminJoueurSelectionne.username, 'boites', 5);
+  if (ok) notifier(`+5 Boîtes envoyées à ${adminJoueurSelectionne.username}`, 'loot', '📦');
+}
 async function adminMaxStats() {
   if (!adminJoueurSelectionne) return;
-  await adminUpdateJoueur(adminJoueurSelectionne.username, { total_xp: (adminJoueurSelectionne.total_xp||0) + 5000 });
-  notifier(`+5000 XP ajoutés à ${adminJoueurSelectionne.username}`, 'niveauUp', '⚡');
+  const ok = await envoyerCommandeAdmin(adminJoueurSelectionne.username, 'xp', 5000);
+  if (ok) {
+    await adminUpdateJoueur(adminJoueurSelectionne.username, { total_xp: (adminJoueurSelectionne.total_xp||0) + 5000 });
+    notifier(`+5000 XP envoyés à ${adminJoueurSelectionne.username}`, 'niveauUp', '⚡');
+  }
 }
 async function adminToutesReliques() {
   if (!adminJoueurSelectionne) return;
-  await adminUpdateJoueur(adminJoueurSelectionne.username, { relics: RELIQUES.length });
-  notifier(`Toutes les reliques accordées à ${adminJoueurSelectionne.username}`, 'relique', '💎');
+  const ok = await envoyerCommandeAdmin(adminJoueurSelectionne.username, 'reliques', 0, { ids: RELIQUES.map(r=>r.id) });
+  if (ok) {
+    await adminUpdateJoueur(adminJoueurSelectionne.username, { relics: RELIQUES.length });
+    notifier(`Toutes reliques envoyées à ${adminJoueurSelectionne.username}`, 'relique', '💎');
+  }
 }
 async function adminReset() {
   if (!adminJoueurSelectionne) return;
   if (!confirm(`⚠️ Reset complet de ${adminJoueurSelectionne.username} ?`)) return;
-  await adminUpdateJoueur(adminJoueurSelectionne.username, { level:1, rank:'E', total_xp:0, streak:0, relics:0, daily_total:0 });
-  notifier(`Reset complet de ${adminJoueurSelectionne.username}`, 'systeme', '🗑');
+  const ok = await envoyerCommandeAdmin(adminJoueurSelectionne.username, 'reset', 0);
+  if (ok) {
+    await adminUpdateJoueur(adminJoueurSelectionne.username, { level:1, rank:'E', total_xp:0, streak:0, relics:0, daily_total:0 });
+    notifier(`Reset complet envoyé à ${adminJoueurSelectionne.username}`, 'systeme', '🗑');
+  }
 }
 
 // ── ACTIONS GLOBALES ──
 async function adminXPTous() {
   const val = parseInt(document.getElementById('adm-xp-all').value);
-  if (isNaN(val) || val <= 0) return;
-  if (!confirm(`Donner ${val} XP à tous les joueurs ?`)) return;
-  if (!supabase || modeLocal) { notifier('Mode local : impossible', 'systeme'); return; }
-  let count = 0;
-  for (const j of tousLesJoueurs) {
-    try { await supabase.from('sl_leaderboard').update({ total_xp: (j.total_xp||0) + val }).eq('username', j.username); count++; } catch(e) {}
+  if (isNaN(val) || val <= 0) { notifier('Valeur invalide', 'systeme'); return; }
+  if (!confirm(`Donner ${val} XP à TOUS les joueurs ?`)) return;
+  const ok = await envoyerCommandeAdmin('all', 'xp', val);
+  if (ok) {
+    document.getElementById('adm-xp-all').value = '';
+    notifier(`Commande envoyée : +${val} XP pour tous les joueurs`, 'niveauUp', '⚡');
+    // Aussi mettre à jour le classement Supabase pour chaque joueur
+    for (const j of tousLesJoueurs) {
+      try { await supabase.from('sl_leaderboard').update({ total_xp: (j.total_xp||0) + val }).eq('username', j.username); } catch(e) {}
+    }
+    chargerDonneesAdmin();
   }
-  notifier(`+${val} XP accordés à ${count} joueurs`, 'niveauUp', '⚡');
-  chargerDonneesAdmin();
 }
 async function adminOrTous() {
-  notifier('Or global : stocké en local sur chaque client, pas synchronisable depuis admin', 'systeme', 'ℹ');
+  const val = parseInt(document.getElementById('adm-or-all').value);
+  if (isNaN(val) || val <= 0) { notifier('Valeur invalide', 'systeme'); return; }
+  if (!confirm(`Donner ${val} Or à TOUS les joueurs ?`)) return;
+  const ok = await envoyerCommandeAdmin('all', 'or', val);
+  if (ok) {
+    document.getElementById('adm-or-all').value = '';
+    notifier(`Commande envoyée : +${val} Or pour tous`, 'or', '◈');
+  }
 }
 async function adminBoitesTous() {
-  notifier('Boîtes : stockées en local sur chaque client, pas synchronisables depuis admin', 'systeme', 'ℹ');
+  const val = parseInt(document.getElementById('adm-boites-all').value) || 1;
+  if (val <= 0) { notifier('Valeur invalide', 'systeme'); return; }
+  if (!confirm(`Donner ${val} boîte${val>1?'s':''} à TOUS les joueurs ?`)) return;
+  const ok = await envoyerCommandeAdmin('all', 'boites', val);
+  if (ok) {
+    document.getElementById('adm-boites-all').value = '';
+    notifier(`Commande envoyée : +${val} boîte${val>1?'s':''} pour tous`, 'loot', '📦');
+  }
 }
 async function adminAnnonce(type) {
   const txt = document.getElementById('adm-annonce').value.trim();
   if (!txt) return;
-  if (!supabase || modeLocal) { notifier('Mode local : impossible', 'systeme'); return; }
-  try {
-    await supabase.from('sl_chat').insert({ username:'⚠ SYSTÈME', rank:'S', level:99, message:`📢 ${txt}` });
-    document.getElementById('adm-annonce').value = '';
-    notifier('Annonce envoyée dans le chat', 'systeme', '📢');
-  } catch(e) { notifier('Erreur envoi annonce', 'systeme'); }
+  // Envoyer dans le chat ET comme notification
+  const promesses = [
+    envoyerCommandeAdmin('all', 'message', 0, { texte: txt }),
+  ];
+  if (supabase && !modeLocal) {
+    promesses.push(supabase.from('sl_chat').insert({ username:'📢 SYSTÈME', rank:'S', level:99, message: txt }));
+  }
+  await Promise.all(promesses);
+  document.getElementById('adm-annonce').value = '';
+  notifier('Annonce envoyée à tous les joueurs', 'systeme', '📢');
 }
 
-// Actions sur soi-même
-function adminSelfXP() { gagnerXP(10000); notifier('+10 000 XP accordés à votre compte', 'niveauUp', '⚡'); syncClassement(); }
-function adminSelfOr() { gagnerOr(5000); notifier('+5 000 Or accordés à votre compte', 'or', '◈'); }
-function adminSelfBoites() { G.boitesLoot = (G.boitesLoot||0) + 10; mettreAJourHeader(); sauvegarder(); notifier('+10 Boîtes de Butin ajoutées', 'loot', '📦'); }
-function adminSelfReliques() {
-  RELIQUES.forEach(r => { if (!(G.reliquesObtenues||[]).includes(r.id)) { G.reliquesObtenues.push(r.id); } });
-  sauvegarder(); mettreAJourApercuReliques(); mettreAJourHeader(); notifier('Toutes les reliques accordées à votre compte', 'relique', '💎');
-}
+// Actions sur soi-même (instantanées localement)
+function adminSelfXP() { gagnerXP(10000); notifier('+10 000 XP accordés', 'niveauUp', '⚡'); syncClassement(); }
+function adminSelfOr() { gagnerOr(5000); notifier('+5 000 Or accordés', 'or', '◈'); }
+function adminSelfBoites() { G.boitesLoot=(G.boitesLoot||0)+10; mettreAJourHeader(); sauvegarder(); notifier('+10 Boîtes de Butin ajoutées', 'loot', '📦'); }
+function adminSelfReliques() { RELIQUES.forEach(r=>{if(!(G.reliquesObtenues||[]).includes(r.id)){accorderRelique(r.id,false);}}); notifier('Toutes les reliques accordées', 'relique', '💎'); }
 
 // ── CHAT ADMIN ──
 async function chargerChatAdmin() {
@@ -2096,6 +2149,113 @@ document.getElementById('modal-mdp-admin').addEventListener('click', function(e)
   if (e.target === this) fermerMdpAdmin();
 });
 // ── FIN ADMIN ──
+
+// ═══════════════════════════════════════════════════════════════
+// COMMANDES ADMIN (push vers clients via Supabase Realtime)
+// ═══════════════════════════════════════════════════════════════
+let cmdDejaVues = new Set();
+
+async function chargerCommandesAdmin() {
+  if (!supabase || modeLocal) return;
+  try {
+    // Chercher commandes non expirées ciblant ce joueur ou 'all'
+    const { data } = await supabase
+      .from('sl_admin_commands')
+      .select('*')
+      .or(`target.eq.all,target.eq.${G.pseudo}`)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: true });
+    if (data) data.forEach(cmd => appliquerCommandeAdmin(cmd));
+  } catch(e) {}
+}
+
+function appliquerCommandeAdmin(cmd) {
+  if (!cmd || cmdDejaVues.has(cmd.id)) return;
+  cmdDejaVues.add(cmd.id);
+  // Ne pas appliquer les cmds antérieures au premier login
+  const cmdDate = new Date(cmd.created_at).getTime();
+  const loginDate = G.premierLogin ? new Date(G.premierLogin).getTime() : 0;
+  if (cmdDate < loginDate - 5000) return;
+
+  switch(cmd.type) {
+    case 'boites':
+      G.boitesLoot = (G.boitesLoot || 0) + (cmd.value || 1);
+      mettreAJourHeader(); sauvegarder();
+      notifier(`+${cmd.value} Boîte${cmd.value>1?'s':''} de Butin reçue${cmd.value>1?'s':''} !`, 'loot', '📦');
+      break;
+    case 'xp':
+      gagnerXP(cmd.value || 0);
+      notifier(`+${cmd.value} XP offerts par l'administrateur !`, 'niveauUp', '⚡');
+      break;
+    case 'or':
+      gagnerOr(cmd.value || 0);
+      notifier(`+${cmd.value} Or offert par l'administrateur !`, 'or', '◈');
+      break;
+    case 'reliques':
+      if (cmd.data && cmd.data.ids) {
+        cmd.data.ids.forEach(id => accorderRelique(id, false));
+      } else {
+        RELIQUES.forEach(r => accorderRelique(r.id, false));
+      }
+      notifier('Des reliques ont été accordées par l\'administrateur !', 'relique', '💎');
+      break;
+    case 'reset':
+      if (cmd.target === G.pseudo) {
+        G.niveau = 1; G.xp = 0; G.rang = 'E'; G.or = 100;
+        G.stats = {FOR:10,AGI:10,INT:10,VIT:10,END:10,PER:10};
+        G.ptsStats = 0; G.serie = 0; G.reliquesObtenues = [];
+        G.boitesLoot = 1; G.xpTotal = 0; G.quotidienTotal = 0;
+        G.completedDaily = {}; G.secondairesFaits = {};
+        mettreAJourHeader(); afficherStats(); afficherQuetes();
+        mettreAJourApercuReliques(); sauvegarder();
+        notifier('Votre profil a été réinitialisé par l\'administrateur.', 'systeme', '🗑');
+      }
+      break;
+    case 'message':
+      if (cmd.data && cmd.data.texte) {
+        notifier(cmd.data.texte, 'systeme', '📢');
+      }
+      break;
+  }
+}
+
+// Abonnement Realtime aux commandes admin
+function abonnerCommandesAdmin() {
+  if (!supabase || modeLocal) return;
+  supabase
+    .channel('sl_admin_cmds_live')
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'sl_admin_commands' },
+      (payload) => {
+        if (!payload.new) return;
+        const cmd = payload.new;
+        if (cmd.target === 'all' || cmd.target === G.pseudo) {
+          appliquerCommandeAdmin(cmd);
+        }
+      }
+    )
+    .subscribe();
+}
+
+// Écrire une commande admin en BDD
+async function envoyerCommandeAdmin(target, type, value = 0, data = {}) {
+  if (!supabase || modeLocal) {
+    notifier('Mode local : commande non envoyée (pas de Supabase)', 'systeme', '⚠');
+    return false;
+  }
+  try {
+    const { error } = await supabase.from('sl_admin_commands').insert({
+      target, type, value, data,
+      expires_at: new Date(Date.now() + 7 * 86400000).toISOString()
+    });
+    if (error) throw error;
+    return true;
+  } catch(e) {
+    notifier('Erreur : ' + e.message, 'systeme', '✕');
+    return false;
+  }
+}
+
 
 
 
