@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#05050f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Solo Leveling System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+<!-- ═══════════════════════════════════════════════════════════
+     CONFIGURATION SUPABASE
+     Remplacez ces valeurs par vos propres clés Supabase :
+     1. Créez un projet sur https://supabase.com
+     2. Allez dans Settings > API
+     3. Copiez l'URL du projet et la clé anon/public
+     ═══════════════════════════════════════════════════════════ -->
+<script>
+  window.SUPABASE_URL = 'https://mdcjuaecyacpyhjodsze.supabase.co'; // ex: https://xxxx.supabase.co
+  window.SUPABASE_KEY = 'sb_publishable_49bDBhxh76wsyouNkP-a4A_0EjBiHc3';     // clé anon/public
+</script>
+
+<!-- SQL à exécuter dans Supabase > SQL Editor :
+
+CREATE TABLE IF NOT EXISTS sl_chat (
+  id BIGSERIAL PRIMARY KEY,
+  username TEXT NOT NULL,
+  rank TEXT DEFAULT 'E',
+  level INT DEFAULT 1,
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS sl_leaderboard (
+  username TEXT PRIMARY KEY,
+  level INT DEFAULT 1,
+  rank TEXT DEFAULT 'E',
+  total_xp BIGINT DEFAULT 0,
+  streak INT DEFAULT 0,
+  relics INT DEFAULT 0,
+  daily_total INT DEFAULT 0,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE sl_chat ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sl_leaderboard ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Lecture publique chat" ON sl_chat FOR SELECT USING (true);
+CREATE POLICY "Insertion publique chat" ON sl_chat FOR INSERT WITH CHECK (true);
+CREATE POLICY "Lecture publique lb" ON sl_leaderboard FOR SELECT USING (true);
+CREATE POLICY "Upsert publique lb" ON sl_leaderboard FOR INSERT WITH CHECK (true);
+CREATE POLICY "Update publique lb" ON sl_leaderboard FOR UPDATE USING (true);
+
+-->
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --c-bg:#05050f;--c-bg2:#0a0a1a;--c-bg3:#0d0d20;
+  --c-border:rgba(255,255,255,0.06);--c-text:#e2e8f0;--c-muted:#475569;
+  --c-purple:#a78bfa;--c-gold:#fbbf24;--c-green:#34d399;--c-blue:#60a5fa;
+  --c-red:#f87171;--c-pink:#e879f9;--c-orange:#fb923c;
+  --font-main:'Rajdhani','Segoe UI',sans-serif;
+  --font-mono:'Share Tech Mono',monospace;
+  --rank-color:#a78bfa;
+}
+html,body{height:100%;overflow:hidden;background:var(--c-bg);color:var(--c-text);font-family:var(--font-main)}
+#app{height:100vh;display:flex;flex-direction:column;max-width:480px;margin:0 auto;background:var(--c-bg);position:relative}
+
+/* ── ÉCRAN DE CONFIG ── */
+#config-screen{position:fixed;inset:0;z-index:9999;background:var(--c-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;gap:0}
+.cfg-rune{font-size:56px;margin-bottom:16px;animation:floatY 3s ease-in-out infinite;filter:drop-shadow(0 0 20px #f87171)}
+.cfg-title{font-size:22px;font-weight:700;color:#f87171;margin-bottom:4px;letter-spacing:2px;text-align:center}
+.cfg-sub{font-size:11px;color:var(--c-muted);font-family:var(--font-mono);letter-spacing:2px;margin-bottom:24px;text-align:center;line-height:1.6}
+.cfg-box{width:100%;max-width:340px;background:rgba(248,113,113,.05);border:1px solid rgba(248,113,113,.2);border-radius:14px;padding:18px;margin-bottom:16px}
+.cfg-box p{font-size:12px;color:var(--c-muted);line-height:1.7;font-family:var(--font-mono)}
+.cfg-box code{color:#f87171;font-family:var(--font-mono);font-size:11px;background:rgba(248,113,113,.1);padding:1px 5px;border-radius:4px}
+.cfg-btn{width:100%;max-width:340px;padding:14px;background:rgba(248,113,113,.15);border:1.5px solid rgba(248,113,113,.4);border-radius:12px;color:#f87171;font-size:14px;font-weight:700;font-family:var(--font-main);letter-spacing:2px;cursor:pointer}
+
+/* ── ONBOARDING ── */
+#onboard{position:fixed;inset:0;z-index:998;background:var(--c-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;gap:0}
+.ob-rune{font-size:68px;margin-bottom:18px;animation:floatY 3s ease-in-out infinite;filter:drop-shadow(0 0 24px #a78bfa)}
+.ob-title{font-size:26px;font-weight:700;color:#fff;margin-bottom:5px;letter-spacing:2px;text-align:center}
+.ob-sub{font-size:11px;color:var(--c-muted);font-family:var(--font-mono);letter-spacing:3px;margin-bottom:32px;text-align:center}
+.ob-label{font-size:10px;color:var(--c-purple);font-family:var(--font-mono);letter-spacing:2px;margin-bottom:7px;align-self:flex-start;width:100%;max-width:320px}
+.ob-input{width:100%;max-width:320px;background:rgba(167,139,250,.06);border:1.5px solid rgba(167,139,250,.3);border-radius:12px;padding:13px 16px;color:#fff;font-size:16px;font-family:var(--font-main);font-weight:600;outline:none;transition:border-color .2s;margin-bottom:16px;letter-spacing:1px}
+.ob-input:focus{border-color:rgba(167,139,250,.7);box-shadow:0 0 0 3px rgba(167,139,250,.1)}
+.ob-btn{width:100%;max-width:320px;padding:15px;background:linear-gradient(135deg,rgba(167,139,250,.3),rgba(139,92,246,.15));border:1.5px solid rgba(167,139,250,.5);border-radius:12px;color:var(--c-purple);font-size:15px;font-weight:700;font-family:var(--font-main);letter-spacing:3px;cursor:pointer;transition:all .2s}
+.ob-err{font-size:11px;color:#f87171;font-family:var(--font-mono);margin-top:-10px;margin-bottom:10px;display:none}
+
+/* ── HEADER ── */
+#header{flex-shrink:0;background:rgba(5,5,15,.97);border-bottom:1px solid var(--c-border);padding:10px 14px;backdrop-filter:blur(20px)}
+.hdr-row{display:flex;align-items:center;justify-content:space-between}
+.hdr-rank{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;font-family:var(--font-mono);border:2px solid currentColor;flex-shrink:0;animation:rankPulse 3s ease-in-out infinite}
+.hdr-info{flex:1;margin:0 10px}
+.hdr-name{font-size:14px;font-weight:700;letter-spacing:.5px}
+.hdr-rank-title{font-size:10px;font-family:var(--font-mono);letter-spacing:1px;margin-top:1px}
+.hdr-right{display:flex;align-items:center;gap:12px}
+.hdr-gold-val{font-size:14px;font-weight:700;color:var(--c-gold);font-family:var(--font-mono)}
+.hdr-gold-lbl{font-size:9px;color:var(--c-muted);font-family:var(--font-mono);letter-spacing:1px;text-align:right}
+#lootbox-btn{position:relative;cursor:pointer;font-size:24px;line-height:1;user-select:none}
+#lootbox-count{position:absolute;top:-4px;right:-4px;background:#e879f9;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;display:none;align-items:center;justify-content:center;box-shadow:0 0 8px #e879f9}
+.xp-bar-bg{height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-top:8px}
+.xp-bar-fill{height:100%;border-radius:2px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+.xp-labels{display:flex;justify-content:space-between;margin-top:3px}
+.xp-lbl{font-size:9px;font-family:var(--font-mono);color:var(--c-muted)}
+
+/* ── TABS ── */
+#tabs{flex-shrink:0;display:flex;background:rgba(5,5,15,.95);border-bottom:1px solid var(--c-border)}
+.tab-btn{flex:1;padding:10px 4px 8px;background:none;border:none;cursor:pointer;color:var(--c-muted);display:flex;flex-direction:column;align-items:center;gap:2px;transition:color .15s;position:relative;font-family:var(--font-main)}
+.tab-btn.active{color:var(--rank-color)}
+.tab-btn.active::after{content:'';position:absolute;bottom:0;left:25%;right:25%;height:2px;border-radius:1px;background:var(--rank-color);box-shadow:0 0 8px var(--rank-color)}
+.tab-icon{font-size:18px}
+.tab-lbl{font-size:8px;font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase}
+.tab-badge{position:absolute;top:4px;right:calc(50% - 18px);background:#f87171;color:#fff;border-radius:50%;width:14px;height:14px;font-size:8px;font-weight:700;display:none;align-items:center;justify-content:center;box-shadow:0 0 6px #f87171}
+
+/* ── CONTENU ── */
+#content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+#content::-webkit-scrollbar{width:2px}
+#content::-webkit-scrollbar-thumb{background:rgba(167,139,250,.2);border-radius:1px}
+.page{display:none;padding:14px;padding-bottom:22px;animation:fadeSlide .25s ease}
+.page.active{display:block}
+.page-chat-active{display:flex!important;flex-direction:column;padding:0!important}
+.sec-title{font-size:10px;color:var(--c-muted);font-family:var(--font-mono);letter-spacing:2px;margin-bottom:10px;text-transform:uppercase}
+
+/* ── STATUT ── */
+.hero-card{border-radius:16px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
+.bar-row{margin-bottom:6px}
+.bar-label{display:flex;justify-content:space-between;margin-bottom:3px}
+.bar-txt{font-size:10px;font-family:var(--font-mono)}
+.bar-bg{height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .4s ease}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.stat-card{border-radius:12px;padding:12px;display:flex;align-items:center;gap:10}
+.stat-bar{height:3px;border-radius:2px;background:rgba(255,255,255,.07);margin-top:5px;overflow:hidden}
+.stat-bar-fill{height:100%;border-radius:2px}
+.stat-plus{width:28px;height:28px;border-radius:7px;border:1.5px solid currentColor;background:transparent;color:inherit;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.stat-plus:active{background:rgba(255,255,255,.1)}
+
+/* ── QUÊTES ── */
+.quest-card{background:rgba(255,255,255,.02);border:1px solid var(--c-border);border-radius:14px;padding:14px;margin-bottom:8px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:12}
+.quest-card:active:not(.done){transform:scale(.99)}
+.quest-card.done{opacity:.5;cursor:default}
+.quest-icon-box{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.quest-rewards{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.quest-tag{font-size:10px;font-family:var(--font-mono);padding:2px 6px;border-radius:4px}
+.prog-bg{height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-top:6px}
+.prog-fill{height:100%;border-radius:2px;transition:width .4s}
+
+/* ── RELIQUES ── */
+.relic-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.relic-card{border-radius:16px;padding:16px;position:relative;overflow:hidden;cursor:pointer;transition:transform .2s}
+.relic-card:active:not(.locked){transform:scale(.97)}
+.relic-card.locked{opacity:.38;filter:grayscale(.8);cursor:default}
+.relic-rarity{font-size:9px;font-family:var(--font-mono);letter-spacing:2px;margin-bottom:5px}
+.relic-icon-big{font-size:36px;margin-bottom:7px;display:block;transition:transform .3s}
+.relic-card:hover:not(.locked) .relic-icon-big{transform:scale(1.1) rotate(-4deg)}
+.relic-name{font-size:13px;font-weight:700;margin-bottom:2px;line-height:1.2}
+.relic-desc{font-size:10px;opacity:.55;line-height:1.35}
+.relic-sheen{position:absolute;inset:0;pointer-events:none;border-radius:16px}
+.sh-common .relic-sheen{background:linear-gradient(135deg,rgba(255,255,255,.04) 0%,transparent 60%)}
+.sh-rare .relic-sheen{background:linear-gradient(135deg,rgba(96,165,250,.14) 0%,rgba(167,139,250,.09) 50%,transparent 100%)}
+.sh-epic .relic-sheen{background:linear-gradient(135deg,rgba(167,139,250,.2) 0%,rgba(232,121,249,.13) 40%,rgba(96,165,250,.09) 100%)}
+.sh-legendary .relic-sheen{background:linear-gradient(135deg,rgba(251,191,36,.24) 0%,rgba(251,146,60,.19) 35%,rgba(232,121,249,.15) 65%,rgba(96,165,250,.09) 100%)}
+.sh-monarch .relic-sheen{background:linear-gradient(135deg,rgba(232,121,249,.32) 0%,rgba(167,139,250,.27) 25%,rgba(251,191,36,.22) 50%,rgba(232,121,249,.27) 75%,rgba(96,165,250,.16) 100%);animation:monarchSheen 3s ease-in-out infinite}
+.relic-lock-badge{position:absolute;top:9px;right:9px;font-size:9px;font-family:var(--font-mono);letter-spacing:1px;padding:3px 7px;border-radius:6px;font-weight:700}
+
+/* ── CLASSEMENT ── */
+.lb-row{display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:14px;margin-bottom:7px;background:rgba(255,255,255,.02);border:1px solid var(--c-border);position:relative;overflow:hidden}
+.lb-row.moi{border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.05)}
+.lb-avatar{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;font-family:var(--font-mono);flex-shrink:0;border:1.5px solid transparent}
+.lb-score-val{font-size:16px;font-weight:700;font-family:var(--font-mono)}
+.lb-score-lbl{font-size:9px;font-family:var(--font-mono);color:var(--c-muted);margin-top:1px;text-align:right}
+
+/* ── CHAT ── */
+#chat-zone{flex:1;overflow-y:auto;padding:12px 14px 8px;display:flex;flex-direction:column;gap:8px;-webkit-overflow-scrolling:touch}
+#chat-zone::-webkit-scrollbar{width:2px}
+#chat-zone::-webkit-scrollbar-thumb{background:rgba(167,139,250,.15)}
+.msg-wrap{display:flex;gap:8px;animation:fadeSlide .2s ease}
+.msg-wrap.moi{flex-direction:row-reverse}
+.msg-avatar{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:var(--font-mono);flex-shrink:0;border:1.5px solid transparent}
+.msg-body{max-width:72%}
+.msg-pseudo{font-size:9px;font-family:var(--font-mono);letter-spacing:1px;margin-bottom:3px;opacity:.6}
+.msg-wrap.moi .msg-pseudo{text-align:right}
+.msg-bulle{padding:9px 13px;border-radius:12px;font-size:13px;font-weight:500;line-height:1.4;word-break:break-word}
+.msg-wrap.moi .msg-bulle{background:rgba(167,139,250,.18);border:1px solid rgba(167,139,250,.25);border-bottom-right-radius:3px}
+.msg-wrap:not(.moi) .msg-bulle{background:rgba(255,255,255,.04);border:1px solid var(--c-border);border-bottom-left-radius:3px}
+.msg-heure{font-size:9px;font-family:var(--font-mono);opacity:.3;margin-top:3px}
+.msg-wrap.moi .msg-heure{text-align:right}
+.msg-systeme{text-align:center;font-size:10px;font-family:var(--font-mono);color:var(--c-muted);letter-spacing:2px;padding:8px 0}
+#chat-saisie{flex-shrink:0;padding:10px 14px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));background:rgba(5,5,15,.97);border-top:1px solid var(--c-border);display:flex;gap:8px;align-items:flex-end}
+#chat-input{flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px 14px;color:var(--c-text);font-size:14px;font-family:var(--font-main);resize:none;min-height:42px;max-height:100px;outline:none;line-height:1.4}
+#chat-input:focus{border-color:rgba(167,139,250,.4)}
+#chat-envoyer{width:42px;height:42px;border-radius:11px;background:rgba(167,139,250,.15);border:1.5px solid rgba(167,139,250,.35);color:var(--c-purple);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+#chat-envoyer:active{background:rgba(167,139,250,.3);transform:scale(.95)}
+.connexion-indicator{display:flex;align-items:center;gap:6px;padding:6px 14px;font-size:10px;font-family:var(--font-mono);color:var(--c-muted);border-bottom:1px solid var(--c-border);background:rgba(5,5,15,.97);flex-shrink:0}
+.conn-dot{width:6px;height:6px;border-radius:50%;background:#34d399;box-shadow:0 0 6px #34d399;animation:pulse 2s ease infinite}
+.conn-dot.offline{background:#f87171;box-shadow:0 0 6px #f87171;animation:none}
+
+/* ── NOTIFS ── */
+#notif-stack{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:8000;display:flex;flex-direction:column;gap:7px;width:calc(100% - 28px);max-width:430px;pointer-events:none}
+.notif{background:linear-gradient(135deg,rgba(10,10,24,.98),rgba(18,10,32,.98));border-radius:12px;padding:11px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 8px 32px rgba(0,0,0,.7);animation:notifIn .35s cubic-bezier(.175,.885,.32,1.275);transition:opacity .3s,transform .3s}
+.notif-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.notif-type{font-size:9px;font-family:var(--font-mono);letter-spacing:2px;margin-bottom:2px;text-transform:uppercase}
+.notif-msg{font-size:12px;font-weight:600;line-height:1.3;color:var(--c-text)}
+
+/* ── MODAL RELIQUE ── */
+#modal-relique{position:fixed;inset:0;z-index:7000;background:rgba(0,0,0,.88);backdrop-filter:blur(12px);display:none;align-items:flex-end;justify-content:center}
+#modal-relique.ouvert{display:flex}
+.modal-inner{width:100%;max-width:480px;background:linear-gradient(180deg,#0d0d22,#080816);border-radius:24px 24px 0 0;border:1px solid rgba(255,255,255,.08);padding:24px 20px calc(28px + env(safe-area-inset-bottom,0px));animation:slideUp .3s ease}
+.modal-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.modal-stat{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:10px;text-align:center}
+.modal-stat-val{font-size:18px;font-weight:800;font-family:var(--font-mono)}
+.modal-stat-lbl{font-size:9px;font-family:var(--font-mono);letter-spacing:1px;color:var(--c-muted);margin-top:2px}
+
+/* ── LOOT BOX ── */
+#modal-loot{position:fixed;inset:0;z-index:7500;background:rgba(0,0,0,.94);display:none;align-items:center;justify-content:center;flex-direction:column;gap:0}
+#modal-loot.ouvert{display:flex}
+.loot-box-emoji{font-size:88px;cursor:pointer;user-select:none;transition:transform .15s}
+.loot-box-emoji:active{transform:scale(.9)}
+
+/* ── INDICATEUR DE CHARGEMENT ── */
+#loading-overlay{position:fixed;inset:0;z-index:9990;background:var(--c-bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.loading-spinner{width:48px;height:48px;border:3px solid rgba(167,139,250,.15);border-top-color:#a78bfa;border-radius:50%;animation:spin 1s linear infinite}
+.loading-txt{font-size:11px;font-family:var(--font-mono);color:var(--c-muted);letter-spacing:3px;animation:pulse 1.5s ease infinite}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeSlide{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes notifIn{from{opacity:0;transform:translateY(-14px) scale(.92)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes monarchSheen{0%,100%{opacity:1}50%{opacity:.6}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes lbShake{0%,100%{transform:rotate(-10deg) scale(1.05)}50%{transform:rotate(10deg) scale(1.1)}}
+@keyframes rankPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes xpFlash{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(-24px) scale(1.4)}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+<div id="notif-stack"></div>
+
+<!-- ═══ CHARGEMENT ═══ -->
+<div id="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-txt">INITIALISATION DU SYSTÈME...</div>
+</div>
+
+<!-- ═══ ÉCRAN DE CONFIG ═══ -->
+<div id="config-screen" style="display:none">
+  <div class="cfg-rune">⚠</div>
+  <div class="cfg-title">CONFIGURATION REQUISE</div>
+  <div class="cfg-sub">Supabase n'est pas configuré.<br>Modifiez les valeurs en haut du fichier HTML.</div>
+  <div class="cfg-box">
+    <p>1. Créez un projet sur <code>supabase.com</code><br>
+    2. Allez dans <code>Settings &gt; API</code><br>
+    3. Copiez l'URL et la clé <code>anon/public</code><br>
+    4. Remplacez <code>VOTRE_URL_SUPABASE_ICI</code> et <code>VOTRE_CLE_ANON_ICI</code> dans ce fichier<br>
+    5. Exécutez le SQL affiché en commentaire dans <code>Supabase &gt; SQL Editor</code></p>
+  </div>
+  <button class="cfg-btn" onclick="document.getElementById('config-screen').style.display='none';document.getElementById('onboard').style.display='flex'">
+    CONTINUER EN MODE LOCAL
+  </button>
+</div>
+
+<!-- ═══ ONBOARDING ═══ -->
+<div id="onboard" style="display:none">
+  <div class="ob-rune">◈</div>
+  <div class="ob-title">SYSTÈME INITIALISÉ</div>
+  <div class="ob-sub">ENREGISTREMENT DU CHASSEUR</div>
+  <div class="ob-label">NOM DU CHASSEUR</div>
+  <input class="ob-input" id="ob-nom" placeholder="Entrez votre nom..." maxlength="16" autocomplete="off" spellcheck="false">
+  <div class="ob-err" id="ob-err">Nom invalide ou déjà utilisé</div>
+  <button class="ob-btn" id="ob-confirmer">ARISE ↗</button>
+</div>
+
+<!-- ═══ APP PRINCIPALE ═══ -->
+<div id="app" style="display:none">
+
+  <!-- HEADER -->
+  <div id="header">
+    <div class="hdr-row">
+      <div class="hdr-rank" id="hdr-rang">E</div>
+      <div class="hdr-info">
+        <div class="hdr-name" id="hdr-nom">Chasseur</div>
+        <div class="hdr-rank-title" id="hdr-titre" style="color:var(--rank-color)">Chasseur Novice</div>
+      </div>
+      <div class="hdr-right">
+        <div style="text-align:right">
+          <div class="hdr-gold-val" id="hdr-or">0</div>
+          <div class="hdr-gold-lbl">OR</div>
+        </div>
+        <div id="lootbox-btn" title="Ouvrir une boîte de butin" style="animation:pulse 2s ease infinite">
+          📦
+          <div id="lootbox-count">0</div>
+        </div>
+      </div>
+    </div>
+    <div class="xp-bar-bg"><div class="xp-bar-fill" id="xp-barre" style="width:0%"></div></div>
+    <div class="xp-labels">
+      <span class="xp-lbl">NIV <span id="xp-niveau">1</span></span>
+      <span class="xp-lbl" id="xp-texte">0 / 100 XP</span>
+    </div>
+  </div>
+
+  <!-- ONGLETS -->
+  <div id="tabs">
+    <button class="tab-btn active" data-tab="statut">
+      <span class="tab-icon">◈</span><span class="tab-lbl">Statut</span>
+    </button>
+    <button class="tab-btn" data-tab="quetes">
+      <span class="tab-icon">⚔</span><span class="tab-lbl">Quêtes</span>
+      <div class="tab-badge" id="badge-quetes">!</div>
+    </button>
+    <button class="tab-btn" data-tab="reliques">
+      <span class="tab-icon">💎</span><span class="tab-lbl">Reliques</span>
+    </button>
+    <button class="tab-btn" data-tab="classement">
+      <span class="tab-icon">👑</span><span class="tab-lbl">Rang</span>
+    </button>
+    <button class="tab-btn" data-tab="chat">
+      <span class="tab-icon">💬</span><span class="tab-lbl">Chat</span>
+      <div class="tab-badge" id="badge-chat">!</div>
+    </button>
+  </div>
+
+  <!-- CONTENU PRINCIPAL -->
+  <div id="content">
+
+    <!-- ─── STATUT ─── -->
+    <div class="page active" id="page-statut">
+      <!-- Carte héros -->
+      <div class="hero-card" id="hero-carte">
+        <div style="display:flex;gap:14px;align-items:center;margin-bottom:14px">
+          <div style="width:80px;height:110px;flex-shrink:0">
+            <svg width="80" height="110" viewBox="0 0 72 100">
+              <defs><radialGradient id="aura" cx="50%" cy="80%" r="60%"><stop offset="0%" stop-color="#a78bfa" stop-opacity=".25"/><stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/></radialGradient></defs>
+              <ellipse cx="36" cy="90" rx="28" ry="10" fill="url(#aura)"/>
+              <rect x="22" y="62" width="11" height="28" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+              <rect x="39" y="62" width="11" height="28" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+              <rect x="20" y="82" width="14" height="9" rx="4" fill="#0f172a" stroke="#1e293b" stroke-width="1.5"/>
+              <rect x="38" y="82" width="14" height="9" rx="4" fill="#0f172a" stroke="#1e293b" stroke-width="1.5"/>
+              <rect x="18" y="36" width="36" height="28" rx="7" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+              <text x="36" y="55" text-anchor="middle" font-size="13" fill="#a78bfa" opacity=".6" id="char-symbole">✦</text>
+              <rect x="7" y="38" width="13" height="22" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+              <rect x="52" y="38" width="13" height="22" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+              <rect x="31" y="28" width="10" height="10" rx="4" fill="#e8d5b0"/>
+              <rect x="20" y="10" width="32" height="26" rx="12" fill="#e8d5b0"/>
+              <rect x="20" y="10" width="32" height="14" rx="9" fill="#111"/>
+              <rect x="20" y="17" width="7" height="10" rx="4" fill="#111"/>
+              <rect x="45" y="17" width="7" height="10" rx="4" fill="#111"/>
+              <ellipse cx="29" cy="26" rx="4" ry="4.5" fill="#0a0a14"/>
+              <ellipse cx="43" cy="26" rx="4" ry="4.5" fill="#0a0a14"/>
+              <ellipse cx="29" cy="26" rx="2.5" ry="3" fill="#1a0a3a" id="oeil-g"/>
+              <ellipse cx="43" cy="26" rx="2.5" ry="3" fill="#1a0a3a" id="oeil-d"/>
+              <circle cx="30.5" cy="24.5" r=".8" fill="white" opacity=".8"/>
+              <circle cx="44.5" cy="24.5" r=".8" fill="white" opacity=".8"/>
+              <path d="M32 33 Q36 36 40 33" stroke="#8b6914" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:700;margin-bottom:10px" id="hero-titre">Chasseur Novice</div>
+            <div class="bar-row">
+              <div class="bar-label"><span class="bar-txt" style="color:#f87171">PV</span><span class="bar-txt" style="color:#f87171" id="pv-txt">100/100</span></div>
+              <div class="bar-bg"><div class="bar-fill" id="pv-barre" style="width:100%;background:linear-gradient(90deg,#f87171,#ef4444)"></div></div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-label"><span class="bar-txt" style="color:#60a5fa">PM</span><span class="bar-txt" style="color:#60a5fa" id="pm-txt">50/50</span></div>
+              <div class="bar-bg" style="height:4px"><div class="bar-fill" id="pm-barre" style="width:100%;background:linear-gradient(90deg,#60a5fa,#3b82f6)"></div></div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+              <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;padding:4px 10px;font-size:10px;color:#fbbf24;font-family:var(--font-mono)">🔥 <span id="serie-val">0</span>j</div>
+              <div style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.2);border-radius:8px;padding:4px 10px;font-size:10px;color:var(--c-purple);font-family:var(--font-mono)">💎 <span id="reliques-nb">0</span></div>
+              <div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;padding:4px 10px;font-size:10px;color:#fbbf24;font-family:var(--font-mono)">◈ <span id="xp-total">0</span> XP total</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alerte points de stat -->
+      <div id="alerte-pts" style="display:none;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.3);border-radius:12px;padding:12px 16px;margin-bottom:14px;cursor:pointer;animation:pulse 2s ease infinite" onclick="document.getElementById('ancre-stats').scrollIntoView({behavior:'smooth'})">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">⚡</span>
+          <div>
+            <div style="color:#fbbf24;font-size:12px;font-weight:700"><span id="pts-count">0</span> POINTS DE STAT À ALLOUER</div>
+            <div style="color:var(--c-muted);font-size:11px;font-family:var(--font-mono)">Appuyez pour distribuer</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="sec-title" id="ancre-stats">◈ STATISTIQUES</div>
+      <div class="stat-grid" id="grille-stats"></div>
+
+      <!-- Aperçu reliques possédées -->
+      <div class="sec-title" style="margin-top:4px">◈ RELIQUES OBTENUES</div>
+      <div id="apercu-reliques" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:4px">
+        <div style="color:var(--c-muted);font-size:12px;font-family:var(--font-mono);padding:10px 0;white-space:nowrap">Complétez des quêtes pour obtenir des reliques</div>
+      </div>
+    </div>
+
+    <!-- ─── QUÊTES ─── -->
+    <div class="page" id="page-quetes">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div>
+          <div style="font-size:17px;font-weight:700">Quêtes Journalières</div>
+          <div style="font-size:10px;color:var(--c-muted);font-family:var(--font-mono)" id="prog-quotidien">0/7 complétées</div>
+        </div>
+        <svg width="72" height="72" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="6"/>
+          <circle cx="40" cy="40" r="32" fill="none" stroke="#a78bfa" stroke-width="6" stroke-linecap="round"
+            id="anneau-quotidien" stroke-dasharray="201" stroke-dashoffset="201" transform="rotate(-90 40 40)"
+            style="transition:stroke-dashoffset .6s ease;filter:drop-shadow(0 0 4px #a78bfa)"/>
+          <text x="40" y="44" text-anchor="middle" font-size="14" font-weight="700" fill="#e2e8f0" font-family="Share Tech Mono, monospace" id="anneau-txt">0/7</text>
+        </svg>
+      </div>
+      <div style="height:4px;background:rgba(255,255,255,.04);border-radius:2px;overflow:hidden;margin-bottom:16px">
+        <div id="barre-quotidien" style="height:100%;width:0%;background:linear-gradient(90deg,#a78bfa80,#a78bfa);border-radius:2px;transition:width .6s ease;box-shadow:0 0 8px #a78bfa"></div>
+      </div>
+      <div id="liste-quetes"></div>
+      <div style="margin-top:20px">
+        <div style="font-size:17px;font-weight:700;margin-bottom:3px">Quêtes Secondaires</div>
+        <div style="font-size:10px;color:var(--c-muted);font-family:var(--font-mono);margin-bottom:14px">Objectifs basés sur la progression</div>
+        <div id="liste-secondaires"></div>
+      </div>
+    </div>
+
+    <!-- ─── RELIQUES ─── -->
+    <div class="page" id="page-reliques">
+      <div style="font-size:17px;font-weight:700;margin-bottom:3px">Reliques des Ombres</div>
+      <div style="font-size:10px;color:var(--c-muted);font-family:var(--font-mono);margin-bottom:16px">Obtenez des reliques en complétant des quêtes et en montant de niveau</div>
+      <div class="relic-grid" id="grille-reliques"></div>
+    </div>
+
+    <!-- ─── CLASSEMENT ─── -->
+    <div class="page" id="page-classement">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div>
+          <div style="font-size:17px;font-weight:700">Classement des Chasseurs</div>
+          <div style="font-size:10px;color:var(--c-muted);font-family:var(--font-mono)" id="lb-statut">En ligne · Mise à jour en direct</div>
+        </div>
+        <button onclick="chargerClassement()" style="background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.2);border-radius:8px;padding:6px 12px;color:var(--c-purple);font-size:11px;font-family:var(--font-mono);cursor:pointer;letter-spacing:1px">↺ SYNC</button>
+      </div>
+      <div id="liste-classement"></div>
+    </div>
+
+    <!-- ─── CHAT ─── -->
+    <div class="page" id="page-chat">
+      <div class="connexion-indicator">
+        <div class="conn-dot" id="conn-dot"></div>
+        <span id="conn-txt" style="font-size:10px">Connexion en cours...</span>
+      </div>
+      <div id="chat-zone"></div>
+      <div id="chat-saisie">
+        <textarea id="chat-input" placeholder="Envoyer un message..." rows="1" maxlength="200"></textarea>
+        <button id="chat-envoyer">↑</button>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<!-- ═══ MODAL RELIQUE ═══ -->
+<div id="modal-relique" onclick="if(event.target===this)fermerModalRelique()">
+  <div class="modal-inner" id="modal-relique-contenu"></div>
+</div>
+
+<!-- ═══ MODAL LOOT BOX ═══ -->
+<div id="modal-loot">
+  <div style="font-size:11px;color:var(--c-muted);font-family:var(--font-mono);letter-spacing:3px;margin-bottom:20px">BOÎTE DE BUTIN</div>
+  <div id="loot-icone" class="loot-box-emoji" onclick="ouvrirLoot()">📦</div>
+  <div id="loot-txt" style="font-size:11px;color:var(--c-muted);font-family:var(--font-mono);letter-spacing:2px;margin-top:16px;animation:pulse 1s ease infinite">APPUYER POUR OUVRIR</div>
+  <div id="loot-revelation" style="display:none;text-align:center;padding:0 30px;animation:fadeSlide .5s ease">
+    <div id="loot-rarete-txt" style="font-size:10px;font-family:var(--font-mono);letter-spacing:4px;margin-bottom:12px"></div>
+    <div id="loot-item-icone" style="font-size:64px;margin-bottom:12px"></div>
+    <div id="loot-item-nom" style="font-size:22px;font-weight:800;margin-bottom:6px"></div>
+    <div id="loot-item-sub" style="font-size:12px;color:var(--c-muted);font-family:var(--font-mono);margin-bottom:24px"></div>
+    <button onclick="fermerLoot()" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:13px 40px;color:var(--c-text);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font-main);letter-spacing:2px">COLLECTER</button>
+  </div>
+</div>
+
+<!-- ═══ SUPABASE CDN ═══ -->
+
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════
+// DONNÉES DU JEU
+// ═══════════════════════════════════════════════════════════════
+const RANGS = [
+  {id:'E', label:'E', couleur:'#94a3b8', lueur:'#64748b', titre:'Chasseur Novice', niveauMin:1},
+  {id:'D', label:'D', couleur:'#60a5fa', lueur:'#3b82f6', titre:'Chasseur de Fer', niveauMin:10},
+  {id:'C', label:'C', couleur:'#34d399', lueur:'#10b981', titre:'Chasseur de Bronze', niveauMin:20},
+  {id:'B', label:'B', couleur:'#a78bfa', lueur:'#8b5cf6', titre:'Chasseur d\'Argent', niveauMin:35},
+  {id:'A', label:'A', couleur:'#fb923c', lueur:'#f97316', titre:'Chasseur d\'Or', niveauMin:50},
+  {id:'S', label:'S', couleur:'#fbbf24', lueur:'#f59e0b', titre:'Chasseur National', niveauMin:70},
+  {id:'◈', label:'◈', couleur:'#e879f9', lueur:'#d946ef', titre:'Monarque des Ombres', niveauMin:99},
+];
+
+const QUETES_JOUR = [
+  {id:'q1', icone:'💪', label:'100 Pompes', xp:150, or:50, stat:'FOR', chanceRelique:.15},
+  {id:'q2', icone:'🔥', label:'100 Abdos', xp:150, or:50, stat:'AGI', chanceRelique:.15},
+  {id:'q3', icone:'⚡', label:'100 Squats', xp:150, or:50, stat:'END', chanceRelique:.15},
+  {id:'q4', icone:'🏃', label:'Courir 10km', xp:300, or:100, stat:'VIT', chanceRelique:.3},
+  {id:'q5', icone:'🧘', label:'Méditer 20min', xp:100, or:30, stat:'INT', chanceRelique:.12},
+  {id:'q6', icone:'💧', label:'Boire 2L d\'eau', xp:80, or:20, stat:'VIT', chanceRelique:.08},
+  {id:'q7', icone:'📖', label:'Étudier 1 heure', xp:120, or:40, stat:'INT', chanceRelique:.12},
+];
+
+const QUETES_SECONDAIRES = [
+  {id:'sq1', icone:'⚔', label:'Compléter 7 Quêtes Journalières', xp:300, or:150, recompenseRelique:'dague_fer', req:{type:'quotidienTotal', val:7}},
+  {id:'sq2', icone:'🔥', label:'Série de 3 Jours', xp:200, or:100, recompenseRelique:'rune_flamme', req:{type:'serie', val:3}},
+  {id:'sq3', icone:'👑', label:'Atteindre le Niveau 10', xp:500, or:250, recompenseRelique:'anneau_ombre', req:{type:'niveau', val:10}},
+  {id:'sq4', icone:'💎', label:'Collecter 5 Reliques', xp:400, or:200, recompenseRelique:'cristal_vide', req:{type:'reliques', val:5}},
+  {id:'sq5', icone:'🌑', label:'Série de 7 Jours', xp:600, or:300, recompenseRelique:'couronne_monarque', req:{type:'serie', val:7}},
+  {id:'sq6', icone:'◈', label:'Atteindre le Niveau 25', xp:1000, or:500, recompenseRelique:'noyau_arise', req:{type:'niveau', val:25}},
+];
+
+const RELIQUES = [
+  {id:'insigne_chasseur', nom:'Insigne du Chasseur', icone:'🏷', rarete:'COMMUN', classeRarete:'sh-common', couleur:'#94a3b8', desc:'Identification standard du chasseur.', bonus:{stat:'PER', val:2}, atk:5, def:3, lore:'Le premier pas.', lootable:true, cond:{type:'niveau', val:1}},
+  {id:'dague_fer', nom:'Dague de Fer', icone:'🗡', rarete:'COMMUN', classeRarete:'sh-common', couleur:'#94a3b8', desc:'Simple mais efficace.', bonus:{stat:'FOR', val:3}, atk:12, def:0, lore:'Forgée dans la médiocrité.', lootable:true, cond:{type:'quotidienTotal', val:7}},
+  {id:'eclat_mana', nom:'Éclat de Mana', icone:'💠', rarete:'COMMUN', classeRarete:'sh-common', couleur:'#60a5fa', desc:'Fragment de mana cristallisé.', bonus:{stat:'INT', val:3}, atk:0, def:5, lore:'Bourdonnement de potentiel.', lootable:true, cond:{type:'niveau', val:3}},
+  {id:'rune_flamme', nom:'Rune de Flamme', icone:'🔮', rarete:'RARE', classeRarete:'sh-rare', couleur:'#fb923c', desc:'Inscrite de magie de feu ancienne.', bonus:{stat:'AGI', val:5}, atk:22, def:8, lore:'La discipline forgée en flamme.', lootable:false, cond:{type:'serie', val:3}},
+  {id:'anneau_ombre', nom:'Anneau de l\'Ombre', icone:'💍', rarete:'RARE', classeRarete:'sh-rare', couleur:'#a78bfa', desc:'Un anneau qui courbe la lumière.', bonus:{stat:'INT', val:6}, atk:15, def:15, lore:'Porté par les ombres.', lootable:false, cond:{type:'niveau', val:10}},
+  {id:'croc_bete', nom:'Croc de Bête', icone:'🦷', rarete:'RARE', classeRarete:'sh-rare', couleur:'#34d399', desc:'Arraché à une bête de rang D.', bonus:{stat:'FOR', val:8}, atk:30, def:5, lore:'Encore chaud.', lootable:true, cond:{type:'quotidienTotal', val:20}},
+  {id:'cristal_vide', nom:'Cristal du Vide', icone:'🔷', rarete:'ÉPIQUE', classeRarete:'sh-epic', couleur:'#a78bfa', desc:'Un éclat du néant absolu.', bonus:{stat:'END', val:10}, atk:40, def:35, lore:'L\'abîme cristallisé.', lootable:false, cond:{type:'reliques', val:5}},
+  {id:'lame_ombre', nom:'Lame des Ombres', icone:'⚔', rarete:'ÉPIQUE', classeRarete:'sh-epic', couleur:'#818cf8', desc:'Matérialisée d\'énergie d\'ombre.', bonus:{stat:'FOR', val:12}, atk:75, def:20, lore:'Née dans le vide.', lootable:false, cond:{type:'niveau', val:20}},
+  {id:'eclat_igris', nom:'Éclat d\'Igris', icone:'⚜', rarete:'ÉPIQUE', classeRarete:'sh-epic', couleur:'#c084fc', desc:'Fragment de l\'armure du Chevalier Ombre.', bonus:{stat:'END', val:15}, atk:50, def:60, lore:'Chevalier éternel.', lootable:false, cond:{type:'serie', val:14}},
+  {id:'couronne_monarque', nom:'Couronne du Monarque', icone:'👑', rarete:'LÉGENDAIRE', classeRarete:'sh-legendary', couleur:'#fbbf24', desc:'Seuls les dignes peuvent la porter.', bonus:{stat:'TOUT', val:10}, atk:90, def:80, lore:'Autorité absolue.', lootable:false, cond:{type:'serie', val:7}},
+  {id:'noyau_arise', nom:'Noyau Arise', icone:'💀', rarete:'LÉGENDAIRE', classeRarete:'sh-legendary', couleur:'#e879f9', desc:'Le cœur du skill Arise, cristallisé.', bonus:{stat:'TOUT', val:15}, atk:120, def:100, lore:'Arise.', lootable:false, cond:{type:'niveau', val:25}},
+  {id:'sceau_monarque', nom:'Sceau du Monarque', icone:'◈', rarete:'MONARQUE', classeRarete:'sh-monarch', couleur:'#e879f9', desc:'La preuve absolue du Monarque des Ombres.', bonus:{stat:'TOUT', val:50}, atk:999, def:999, lore:'Je suis le monarque de toutes les ombres.', lootable:false, cond:{type:'niveau', val:99}},
+];
+
+const POOL_LOOT = ['insigne_chasseur','dague_fer','eclat_mana','croc_bete'];
+const COULEURS_STATS = {FOR:'#fb923c', AGI:'#34d399', INT:'#60a5fa', VIT:'#f87171', END:'#a78bfa', PER:'#fbbf24'};
+const NOMS_STATS = {FOR:'Force', AGI:'Agilité', INT:'Intelligence', VIT:'Vitalité', END:'Endurance', PER:'Perception'};
+
+// ═══════════════════════════════════════════════════════════════
+// ÉTAT DU JEU
+// ═══════════════════════════════════════════════════════════════
+const CLE_LS = 'sl4_etat';
+let G = {
+  pseudo:'', niveau:1, xp:0, rang:'E', or:150,
+  pv:100, pvMax:100, pm:50, pmMax:50,
+  stats:{FOR:10, AGI:10, INT:10, VIT:10, END:10, PER:10},
+  ptsStats:0,
+  serie:0, dernierLogin:null,
+  quotidiensFaits:{}, dateQuotidiens:null,
+  quotidienTotal:0,
+  secondairesFaits:{},
+  reliquesObtenues:[],
+  boitesLoot:1,
+  xpTotal:0,
+  onglet:'statut',
+};
+
+function sauvegarder() { try { localStorage.setItem(CLE_LS, JSON.stringify(G)); } catch(e) {} }
+function chargerLocal() { try { const s = localStorage.getItem(CLE_LS); if(s) G = {...G, ...JSON.parse(s)}; } catch(e) {} }
+
+// ═══════════════════════════════════════════════════════════════
+// SUPABASE
+// ═══════════════════════════════════════════════════════════════
+let supabase = null;
+let abonnementChat = null;
+let modeLocal = false;
+let connecte = false;
+
+function initSupabase() {
+  const url = window.SUPABASE_URL;
+  const key = window.SUPABASE_KEY;
+  if (!url || url === 'VOTRE_URL_SUPABASE_ICI' || !key || key === 'VOTRE_CLE_ANON_ICI') {
+    console.log('Supabase non configuré → mode local');
+    modeLocal = true;
+    return false;
+  }
+  if (!window.supabase || !window.supabase.createClient) {
+    console.warn('SDK Supabase non disponible → mode local');
+    modeLocal = true;
+    return false;
+  }
+  try {
+    // Supporte les deux formats : eyJ... (anon key) et sb_publishable_... (nouveau format)
+    supabase = window.supabase.createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      realtime: { params: { eventsPerSecond: 10 } }
+    });
+    console.log('Supabase initialisé ✓', url);
+    return true;
+  } catch(e) {
+    console.error('Erreur Supabase:', e);
+    modeLocal = true;
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+const getXPNiveau = n => Math.floor(100 * Math.pow(n, 1.6));
+const getRang = n => [...RANGS].reverse().find(r => n >= r.niveauMin) || RANGS[0];
+const rnd = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const initiales = n => (n || '?').slice(0, 2).toUpperCase();
+const couleurAvatar = n => { const h = n.split('').reduce((a,c) => a + c.charCodeAt(0), 0); return ['#a78bfa','#60a5fa','#34d399','#fb923c','#e879f9','#fbbf24'][h % 6]; };
+const echapper = t => t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const heureStr = ts => { const d = new Date(ts); return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0'); };
+
+// ═══════════════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════
+const pileNotifs = document.getElementById('notif-stack');
+const TYPES_NOTIF = {
+  niveauUp:{couleur:'#fbbf24', label:'▲ NIVEAU SUPÉRIEUR', bg:'rgba(251,191,36,.12)'},
+  quete:{couleur:'#34d399', label:'◉ QUÊTE ACCOMPLIE', bg:'rgba(52,211,153,.1)'},
+  relique:{couleur:'#e879f9', label:'◆ RELIQUE OBTENUE', bg:'rgba(232,121,249,.1)'},
+  rang:{couleur:'#fb923c', label:'★ RANG SUPÉRIEUR', bg:'rgba(251,146,60,.1)'},
+  serie:{couleur:'#60a5fa', label:'🔥 SÉRIE', bg:'rgba(96,165,250,.1)'},
+  systeme:{couleur:'#a78bfa', label:'⚠ SYSTÈME', bg:'rgba(167,139,250,.1)'},
+  or:{couleur:'#fbbf24', label:'◈ OR', bg:'rgba(251,191,36,.1)'},
+  loot:{couleur:'#e879f9', label:'◆ BUTIN', bg:'rgba(232,121,249,.1)'},
+};
+
+function notifier(msg, type = 'systeme', icone = '◈') {
+  const s = TYPES_NOTIF[type] || TYPES_NOTIF.systeme;
+  const el = document.createElement('div');
+  el.className = 'notif';
+  el.style.cssText = `border:1px solid ${s.couleur}20;border-left:3px solid ${s.couleur}`;
+  el.innerHTML = `<div class="notif-icon" style="background:${s.bg};border:1px solid ${s.couleur}30">${icone}</div><div><div class="notif-type" style="color:${s.couleur}">${s.label}</div><div class="notif-msg">${msg}</div></div>`;
+  pileNotifs.prepend(el);
+  setTimeout(() => { el.style.transition = 'all .3s'; el.style.opacity = '0'; el.style.transform = 'translateY(-8px)'; setTimeout(() => el.remove(), 300); }, 3200);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GAIN XP / OR
+// ═══════════════════════════════════════════════════════════════
+function gagnerXP(montant, statCle) {
+  G.xpTotal = (G.xpTotal || 0) + montant;
+  G.xp += montant;
+  if (statCle) G.stats[statCle] = (G.stats[statCle] || 0) + Math.floor(montant / 50);
+  let changementNiveau = false, changementRang = false;
+  while (G.xp >= getXPNiveau(G.niveau)) { G.xp -= getXPNiveau(G.niveau); G.niveau++; G.ptsStats += 5; changementNiveau = true; }
+  const nr = getRang(G.niveau);
+  if (nr.id !== G.rang) { G.rang = nr.id; changementRang = true; setTimeout(() => notifier(`Rang → ${nr.id} — ${nr.titre} !`, 'rang', '★'), 500); }
+  if (changementNiveau) { setTimeout(() => notifier(`Niveau ${G.niveau} atteint ! +5 Points de Stat`, 'niveauUp', '▲'), 150); verifierDeblocageReliques(); }
+  mettreAJourHeader();
+  sauvegarder();
+  syncClassement();
+}
+
+function gagnerOr(montant) { G.or += montant; mettreAJourHeader(); sauvegarder(); }
+
+// ═══════════════════════════════════════════════════════════════
+// INTERFACE HEADER
+// ═══════════════════════════════════════════════════════════════
+function mettreAJourHeader() {
+  const r = getRang(G.niveau);
+  document.documentElement.style.setProperty('--rank-color', r.couleur);
+  const xpN = getXPNiveau(G.niveau);
+  const pct = Math.min(100, (G.xp / xpN) * 100);
+
+  const rb = document.getElementById('hdr-rang');
+  rb.textContent = r.label; rb.style.color = r.couleur; rb.style.borderColor = r.couleur;
+  rb.style.boxShadow = `0 0 14px ${r.lueur}40`;
+
+  document.getElementById('hdr-nom').textContent = G.pseudo || 'Chasseur';
+  const rt = document.getElementById('hdr-titre'); rt.textContent = r.titre; rt.style.color = r.couleur;
+  document.getElementById('hdr-or').textContent = (G.or || 0).toLocaleString('fr-FR');
+  document.getElementById('xp-barre').style.cssText = `width:${pct}%;background:linear-gradient(90deg,${r.couleur}70,${r.couleur});box-shadow:0 0 6px ${r.lueur}`;
+  document.getElementById('xp-niveau').textContent = G.niveau;
+  document.getElementById('xp-texte').textContent = `${G.xp} / ${xpN} XP`;
+  document.getElementById('hero-titre').textContent = r.titre;
+
+  const lc = document.getElementById('lootbox-count');
+  if (G.boitesLoot > 0) { lc.style.display = 'flex'; lc.textContent = G.boitesLoot; } else { lc.style.display = 'none'; }
+
+  const hc = document.getElementById('hero-carte');
+  hc.style.background = `linear-gradient(135deg,${r.couleur}08,rgba(0,0,0,0.5))`;
+  hc.style.border = `1px solid ${r.couleur}20`;
+  document.getElementById('pv-txt').textContent = `${G.pv||100}/${G.pvMax||100}`;
+  document.getElementById('pm-txt').textContent = `${G.pm||50}/${G.pmMax||50}`;
+  document.getElementById('pv-barre').style.width = Math.min(100, ((G.pv||100)/(G.pvMax||100))*100) + '%';
+  document.getElementById('pm-barre').style.width = Math.min(100, ((G.pm||50)/(G.pmMax||50))*100) + '%';
+  document.getElementById('serie-val').textContent = G.serie || 0;
+  document.getElementById('reliques-nb').textContent = (G.reliquesObtenues || []).length;
+  document.getElementById('xp-total').textContent = (G.xpTotal || 0).toLocaleString('fr-FR');
+
+  const alerte = document.getElementById('alerte-pts');
+  alerte.style.display = G.ptsStats > 0 ? 'flex' : 'none';
+  if (G.ptsStats > 0) document.getElementById('pts-count').textContent = G.ptsStats;
+
+  // Yeux violets au niveau Monarque
+  const og = document.getElementById('oeil-g'), od = document.getElementById('oeil-d');
+  if (og) og.setAttribute('fill', G.niveau >= 99 ? '#a855f7' : '#1a0a3a');
+  if (od) od.setAttribute('fill', G.niveau >= 99 ? '#a855f7' : '#1a0a3a');
+
+  // Badge quêtes
+  const today = new Date().toDateString();
+  const faites = Object.values(G.quotidiensFaits || {}).filter(Boolean).length;
+  const restant = QUETES_JOUR.length - faites;
+  const bq = document.getElementById('badge-quetes');
+  if (restant > 0 && G.dateQuotidiens === today) { bq.style.display = 'flex'; bq.textContent = restant; }
+  else if (G.dateQuotidiens !== today) { bq.style.display = 'flex'; bq.textContent = QUETES_JOUR.length; }
+  else { bq.style.display = 'none'; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATISTIQUES
+// ═══════════════════════════════════════════════════════════════
+function afficherStats() {
+  const grille = document.getElementById('grille-stats');
+  grille.innerHTML = '';
+  Object.entries(G.stats).forEach(([k, v]) => {
+    const c = COULEURS_STATS[k];
+    const pct = Math.min(100, (v / 200) * 100);
+    grille.innerHTML += `<div class="stat-card" style="background:${c}08;border:1px solid ${c}18">
+      <div style="flex:1">
+        <div style="font-size:9px;color:${c};font-family:var(--font-mono);letter-spacing:1px;margin-bottom:2px">${k} · ${NOMS_STATS[k]}</div>
+        <div style="font-size:26px;font-weight:700;line-height:1;color:#fff">${v}</div>
+        <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%;background:${c}"></div></div>
+      </div>
+      <button class="stat-plus" style="color:${c};border-color:${c}50;${G.ptsStats>0?'':'opacity:.2;pointer-events:none'}" onclick="allouerStat('${k}')">+</button>
+    </div>`;
+  });
+}
+
+function allouerStat(k) {
+  if (G.ptsStats <= 0) return;
+  G.stats[k]++; G.ptsStats--;
+  if (k === 'VIT') G.pvMax += 5;
+  if (k === 'INT') G.pmMax += 3;
+  afficherStats(); mettreAJourHeader(); sauvegarder();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// QUÊTES
+// ═══════════════════════════════════════════════════════════════
+function afficherQuetes() {
+  const today = new Date().toDateString();
+  if (G.dateQuotidiens !== today) { G.quotidiensFaits = {}; G.dateQuotidiens = today; sauvegarder(); }
+
+  const faites = Object.values(G.quotidiensFaits).filter(Boolean).length;
+  const total = QUETES_JOUR.length;
+  document.getElementById('prog-quotidien').textContent = `${faites}/${total} complétées`;
+  document.getElementById('anneau-quotidien').style.strokeDashoffset = 201 * (1 - faites / total);
+  document.getElementById('anneau-txt').textContent = `${faites}/${total}`;
+  document.getElementById('barre-quotidien').style.width = (faites / total * 100) + '%';
+
+  const liste = document.getElementById('liste-quetes');
+  liste.innerHTML = '';
+  QUETES_JOUR.forEach(q => {
+    const faite = !!G.quotidiensFaits[q.id];
+    const sc = COULEURS_STATS[q.stat] || '#a78bfa';
+    liste.innerHTML += `<div class="quest-card${faite ? ' done' : ''}" onclick="${faite ? '' : `completerQuete('${q.id}')`}">
+      <div class="quest-icon-box" style="background:${faite?'rgba(52,211,153,.12)':sc+'12'};border:1px solid ${faite?'rgba(52,211,153,.25)':sc+'25'}">${faite ? '✓' : q.icone}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600;color:${faite?'#475569':'#e2e8f0'};margin-bottom:2px">${q.label}</div>
+        <div class="quest-rewards">
+          <span class="quest-tag" style="color:${sc};background:${sc}15">${q.stat}</span>
+          <span class="quest-tag" style="color:#fbbf24">+${q.xp} XP</span>
+          <span class="quest-tag" style="color:#fbbf24">+${q.or} Or</span>
+          ${q.chanceRelique > .2 ? '<span class="quest-tag" style="color:#e879f9">◆ relique</span>' : ''}
+        </div>
+      </div>
+      ${!faite ? '<span style="color:#334155;font-size:18px">›</span>' : ''}
+    </div>`;
+  });
+
+  const listeS = document.getElementById('liste-secondaires');
+  listeS.innerHTML = '';
+  QUETES_SECONDAIRES.forEach(q => {
+    const faite = !!G.secondairesFaits[q.id];
+    let prog = 0, tot = q.req.val;
+    if (q.req.type === 'quotidienTotal') prog = Math.min(G.quotidienTotal || 0, tot);
+    else if (q.req.type === 'serie') prog = Math.min(G.serie || 0, tot);
+    else if (q.req.type === 'niveau') prog = Math.min(G.niveau, tot);
+    else if (q.req.type === 'reliques') prog = Math.min((G.reliquesObtenues || []).length, tot);
+    const pct = Math.min(100, (prog / tot) * 100);
+    const peutClaimer = pct >= 100 && !faite;
+    const relique = RELIQUES.find(r => r.id === q.recompenseRelique);
+
+    listeS.innerHTML += `<div class="quest-card${faite ? ' done' : ''}" style="${peutClaimer ? 'border:1px solid rgba(251,191,36,.3);animation:pulse 2s ease infinite' : ''}">
+      <div class="quest-icon-box" style="background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.2);font-size:24px">${q.icone}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600;color:${faite?'#475569':'#e2e8f0'};margin-bottom:4px">${q.label}</div>
+        <div class="quest-rewards" style="margin-bottom:${faite?'0':'6px'}">
+          <span class="quest-tag" style="color:#fbbf24">+${q.xp} XP</span>
+          <span class="quest-tag" style="color:#fbbf24">+${q.or} Or</span>
+          ${relique ? `<span class="quest-tag" style="color:${relique.couleur}">${relique.icone} ${relique.nom}</span>` : ''}
+        </div>
+        ${!faite ? `<div style="display:flex;justify-content:space-between;font-size:9px;font-family:var(--font-mono);color:#475569;margin-bottom:3px"><span>${q.req.type}</span><span>${prog}/${tot}</span></div><div class="prog-bg"><div class="prog-fill" style="width:${pct}%;background:${peutClaimer?'#fbbf24':'#a78bfa'}"></div></div>` : ''}
+      </div>
+      ${peutClaimer ? `<button onclick="claimer('${q.id}')" style="background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.35);border-radius:8px;padding:8px 12px;color:#fbbf24;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font-main);flex-shrink:0">RÉCLAMER</button>` : ''}
+      ${faite ? '<span style="color:#34d399;font-size:20px;flex-shrink:0">✓</span>' : ''}
+    </div>`;
+  });
+}
+
+function completerQuete(id) {
+  const q = QUETES_JOUR.find(x => x.id === id);
+  if (!q || G.quotidiensFaits[q.id]) return;
+  G.quotidiensFaits[q.id] = true;
+  G.quotidienTotal = (G.quotidienTotal || 0) + 1;
+  gagnerXP(q.xp, q.stat);
+  gagnerOr(q.or);
+  notifier(`${q.label} ✓  +${q.xp} XP +${q.or} Or`, 'quete', q.icone);
+  if (Math.random() < q.chanceRelique) {
+    const rid = POOL_LOOT[rnd(0, POOL_LOOT.length - 1)];
+    accorderRelique(rid, true);
+  }
+  verifierSerie();
+  if (G.quotidienTotal % 7 === 0) {
+    G.boitesLoot = (G.boitesLoot || 0) + 1;
+    mettreAJourHeader();
+    notifier('Boîte de Butin gagnée ! Appuyez sur 📦 pour ouvrir.', 'loot', '📦');
+  }
+  afficherQuetes();
+  mettreAJourApercuReliques();
+  sauvegarder();
+  syncClassement();
+}
+
+function claimer(id) {
+  const q = QUETES_SECONDAIRES.find(x => x.id === id);
+  if (!q || G.secondairesFaits[q.id]) return;
+  G.secondairesFaits[q.id] = true;
+  gagnerXP(q.xp);
+  gagnerOr(q.or);
+  accorderRelique(q.recompenseRelique, false);
+  notifier(`Quête secondaire accomplie : ${q.label}`, 'quete', q.icone);
+  afficherQuetes();
+  sauvegarder();
+}
+
+function verifierSerie() {
+  const aujourd = new Date().toDateString();
+  const hier = new Date(Date.now() - 86400000).toDateString();
+  if (G.dernierLogin === hier) { G.serie++; G.dernierLogin = aujourd; }
+  else if (G.dernierLogin !== aujourd) { G.serie = 1; G.dernierLogin = aujourd; }
+  if (G.serie > 1) notifier(`Série de ${G.serie} jours active !`, 'serie', '🔥');
+  sauvegarder();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RELIQUES
+// ═══════════════════════════════════════════════════════════════
+function accorderRelique(id, depuisLoot = false) {
+  if (!id) return;
+  G.reliquesObtenues = G.reliquesObtenues || [];
+  if (G.reliquesObtenues.includes(id)) return;
+  G.reliquesObtenues.push(id);
+  const r = RELIQUES.find(x => x.id === id);
+  if (r) {
+    notifier(depuisLoot ? `Butin : ${r.nom} !` : `${r.nom} obtenue !`, 'relique', r.icone);
+    if (r.bonus) {
+      if (r.bonus.stat === 'TOUT') Object.keys(G.stats).forEach(k => G.stats[k] += r.bonus.val);
+      else G.stats[r.bonus.stat] = (G.stats[r.bonus.stat] || 0) + r.bonus.val;
+      afficherStats();
+    }
+    mettreAJourApercuReliques();
+    verifierDeblocageReliques();
+  }
+  sauvegarder();
+}
+
+function verifierDeblocageReliques() {
+  RELIQUES.forEach(r => {
+    if ((G.reliquesObtenues || []).includes(r.id) || !r.cond) return;
+    if (!r.lootable && r.cond.type === 'niveau' && G.niveau >= r.cond.val) accorderRelique(r.id, false);
+  });
+}
+
+function afficherReliques() {
+  const grille = document.getElementById('grille-reliques');
+  grille.innerHTML = '';
+  const couleursRarete = {COMMUN:'#94a3b8', RARE:'#60a5fa', 'ÉPIQUE':'#a78bfa', 'LÉGENDAIRE':'#fbbf24', MONARQUE:'#e879f9'};
+  RELIQUES.forEach(r => {
+    const possede = (G.reliquesObtenues || []).includes(r.id);
+    const rc = couleursRarete[r.rarete] || '#94a3b8';
+    let msgVerrou = '';
+    if (!possede && r.cond) {
+      if (r.cond.type === 'niveau') msgVerrou = `Niv. ${r.cond.val}`;
+      else if (r.cond.type === 'serie') msgVerrou = `${r.cond.val}j de série`;
+      else if (r.cond.type === 'quotidienTotal') msgVerrou = `${r.cond.val} quêtes`;
+      else if (r.cond.type === 'reliques') msgVerrou = `${r.cond.val} reliques`;
+    }
+    grille.innerHTML += `<div class="relic-card ${r.classeRarete}${possede ? '' : ' locked'}"
+      style="background:linear-gradient(135deg,${rc}10,${rc}05,rgba(0,0,0,.6));border:1px solid ${rc}${possede?'35':'15'};${possede?`box-shadow:0 0 20px ${rc}12,inset 0 1px 0 ${rc}18`:''}"
+      onclick="${possede ? `ouvrirModalRelique('${r.id}')` : ''}">
+      <div class="relic-sheen"></div>
+      <div class="relic-rarity" style="color:${rc}">${r.rarete}</div>
+      <div class="relic-icon-big">${r.icone}</div>
+      <div class="relic-name" style="color:${possede?rc:'#475569'}">${r.nom}</div>
+      <div class="relic-desc">${possede ? r.desc : '???'}</div>
+      ${!possede && msgVerrou ? `<div class="relic-lock-badge" style="background:${rc}15;color:${rc};border:1px solid ${rc}25">${msgVerrou}</div>` : ''}
+      ${possede ? `<div style="position:absolute;bottom:10px;right:10px;font-size:9px;font-family:var(--font-mono);color:${rc}90">OBTENUE</div>` : ''}
+    </div>`;
+  });
+}
+
+function ouvrirModalRelique(id) {
+  const r = RELIQUES.find(x => x.id === id);
+  if (!r) return;
+  const rc = {COMMUN:'#94a3b8', RARE:'#60a5fa', 'ÉPIQUE':'#a78bfa', 'LÉGENDAIRE':'#fbbf24', MONARQUE:'#e879f9'}[r.rarete];
+  document.getElementById('modal-relique-contenu').innerHTML = `
+    <div style="width:40px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin:0 auto 20px"></div>
+    <div style="width:80px;height:80px;border-radius:20px;background:linear-gradient(135deg,${rc}20,${rc}08);border:1.5px solid ${rc}40;box-shadow:0 0 30px ${rc}25;display:flex;align-items:center;justify-content:center;font-size:42px;margin:0 auto 16px;position:relative">
+      <div style="animation:floatY 3s ease-in-out infinite">${r.icone}</div>
+      <div class="relic-sheen ${r.classeRarete}" style="border-radius:20px"></div>
+    </div>
+    <div style="font-size:22px;font-weight:800;text-align:center;color:${rc};margin-bottom:4px">${r.nom}</div>
+    <div style="font-size:10px;font-family:var(--font-mono);letter-spacing:3px;text-align:center;color:${rc}90;margin-bottom:12px">RELIQUE ${r.rarete}</div>
+    <div style="font-size:13px;line-height:1.6;text-align:center;color:var(--c-muted);margin-bottom:8px">${r.desc}</div>
+    <div style="font-size:11px;color:${rc}70;font-family:var(--font-mono);font-style:italic;text-align:center;margin-bottom:16px">"${r.lore}"</div>
+    <div class="modal-stats">
+      <div class="modal-stat" style="border-color:rgba(251,146,60,.2)"><div class="modal-stat-val" style="color:#fb923c">${r.atk}</div><div class="modal-stat-lbl">ATTAQUE</div></div>
+      <div class="modal-stat" style="border-color:rgba(96,165,250,.2)"><div class="modal-stat-val" style="color:#60a5fa">${r.def}</div><div class="modal-stat-lbl">DÉFENSE</div></div>
+      <div class="modal-stat" style="border-color:rgba(167,139,250,.2)"><div class="modal-stat-val" style="color:#a78bfa">${r.bonus.stat}</div><div class="modal-stat-lbl">STAT BONUS</div></div>
+      <div class="modal-stat" style="border-color:rgba(251,191,36,.2)"><div class="modal-stat-val" style="color:#fbbf24">+${r.bonus.val}</div><div class="modal-stat-lbl">VALEUR</div></div>
+    </div>
+    <button onclick="fermerModalRelique()" style="width:100%;padding:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;color:var(--c-muted);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-main)">FERMER</button>`;
+  document.getElementById('modal-relique').classList.add('ouvert');
+}
+function fermerModalRelique() { document.getElementById('modal-relique').classList.remove('ouvert'); }
+
+function mettreAJourApercuReliques() {
+  const apercu = document.getElementById('apercu-reliques');
+  const possedees = G.reliquesObtenues || [];
+  if (!possedees.length) {
+    apercu.innerHTML = '<div style="color:var(--c-muted);font-size:12px;font-family:var(--font-mono);padding:10px 0;white-space:nowrap">Complétez des quêtes pour obtenir des reliques</div>';
+    return;
+  }
+  const cr = {COMMUN:'#94a3b8', RARE:'#60a5fa', 'ÉPIQUE':'#a78bfa', 'LÉGENDAIRE':'#fbbf24', MONARQUE:'#e879f9'};
+  apercu.innerHTML = possedees.map(id => {
+    const r = RELIQUES.find(x => x.id === id);
+    if (!r) return '';
+    const c = cr[r.rarete];
+    return `<div onclick="ouvrirModalRelique('${r.id}')" style="flex-shrink:0;width:54px;height:58px;border-radius:12px;background:linear-gradient(135deg,${c}15,${c}05);border:1px solid ${c}30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;box-shadow:0 0 10px ${c}15"><span style="font-size:22px">${r.icone}</span><span style="font-size:8px;color:${c};font-family:var(--font-mono)">${r.rarete.slice(0,3)}</span></div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BOÎTE DE BUTIN
+// ═══════════════════════════════════════════════════════════════
+let lootPhase = 'idle', lootIdEnAttente = null;
+
+document.getElementById('lootbox-btn').onclick = () => {
+  if ((G.boitesLoot || 0) <= 0) return;
+  G.boitesLoot--;
+  mettreAJourHeader();
+  lootPhase = 'pret'; lootIdEnAttente = null;
+  document.getElementById('loot-icone').textContent = '📦';
+  document.getElementById('loot-icone').style.animation = '';
+  document.getElementById('loot-txt').style.display = 'block';
+  document.getElementById('loot-revelation').style.display = 'none';
+  document.getElementById('modal-loot').classList.add('ouvert');
+};
+
+function ouvrirLoot() {
+  if (lootPhase !== 'pret') return;
+  lootPhase = 'ouverture';
+  document.getElementById('loot-icone').style.animation = 'lbShake .25s ease infinite';
+  document.getElementById('loot-txt').textContent = 'OUVERTURE...';
+  const roll = Math.random();
+  const raretes = [
+    {label:'COMMUN', couleur:'#94a3b8', ids:['insigne_chasseur','eclat_mana','dague_fer'], xp:80, or:40},
+    {label:'RARE', couleur:'#60a5fa', ids:['croc_bete','eclat_mana'], xp:200, or:100},
+    {label:'ÉPIQUE', couleur:'#a78bfa', ids:['cristal_vide','lame_ombre'], xp:500, or:250},
+    {label:'LÉGENDAIRE', couleur:'#fbbf24', ids:['noyau_arise','couronne_monarque'], xp:1200, or:600},
+  ];
+  const choisi = roll < .55 ? raretes[0] : roll < .82 ? raretes[1] : roll < .96 ? raretes[2] : raretes[3];
+  const relId = choisi.ids[rnd(0, choisi.ids.length - 1)];
+  const relique = RELIQUES.find(r => r.id === relId);
+  setTimeout(() => {
+    document.getElementById('loot-icone').style.animation = 'none';
+    document.getElementById('loot-icone').textContent = '✨';
+    document.getElementById('loot-txt').style.display = 'none';
+    const rev = document.getElementById('loot-revelation');
+    rev.style.display = 'block';
+    const rte = document.getElementById('loot-rarete-txt');
+    rte.textContent = `RÉCOMPENSE ${choisi.label}`;
+    rte.style.cssText = `font-size:10px;font-family:var(--font-mono);letter-spacing:4px;margin-bottom:12px;color:${choisi.couleur};text-shadow:0 0 20px ${choisi.couleur}`;
+    document.getElementById('loot-item-icone').textContent = relique ? relique.icone : '◆';
+    const ni = document.getElementById('loot-item-nom');
+    ni.textContent = relique ? relique.nom : choisi.label;
+    ni.style.cssText = `font-size:22px;font-weight:800;margin-bottom:6px;color:${choisi.couleur};text-shadow:0 0 20px ${choisi.couleur}`;
+    document.getElementById('loot-item-sub').textContent = `+${choisi.xp} XP · +${choisi.or} Or`;
+    lootIdEnAttente = relId;
+    gagnerXP(choisi.xp);
+    gagnerOr(choisi.or);
+    lootPhase = 'revelation';
+  }, 1200);
+}
+
+function fermerLoot() {
+  if (lootIdEnAttente) accorderRelique(lootIdEnAttente, true);
+  document.getElementById('modal-loot').classList.remove('ouvert');
+  lootPhase = 'idle';
+  afficherReliques();
+  mettreAJourApercuReliques();
+  sauvegarder();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CLASSEMENT SUPABASE
+// ═══════════════════════════════════════════════════════════════
+async function syncClassement() {
+  if (!supabase || modeLocal || !G.pseudo) return;
+  try {
+    await supabase.from('sl_leaderboard').upsert({
+      username: G.pseudo,
+      level: G.niveau,
+      rank: G.rang,
+      total_xp: G.xpTotal || 0,
+      streak: G.serie || 0,
+      relics: (G.reliquesObtenues || []).length,
+      daily_total: G.quotidienTotal || 0,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'username' });
+  } catch(e) {}
+}
+
+async function chargerClassement() {
+  const liste = document.getElementById('liste-classement');
+  const lbStatut = document.getElementById('lb-statut');
+  liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--c-muted);font-family:var(--font-mono);font-size:11px;letter-spacing:2px;animation:pulse 1s ease infinite">SYNCHRONISATION...</div>';
+
+  if (modeLocal || !supabase) {
+    lbStatut.textContent = 'Mode local · Pas de connexion Supabase';
+    // Fallback localStorage
+    try {
+      const lb = JSON.parse(localStorage.getItem('sl4_lb') || '{}');
+      lb[G.pseudo] = {username:G.pseudo, level:G.niveau, rank:G.rang, total_xp:G.xpTotal||0, streak:G.serie||0, relics:(G.reliquesObtenues||[]).length};
+      localStorage.setItem('sl4_lb', JSON.stringify(lb));
+      renderClassement(Object.values(lb).sort((a,b)=>(b.total_xp||0)-(a.total_xp||0)));
+    } catch(e) { liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--c-muted)">Aucun chasseur enregistré</div>'; }
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase.from('sl_leaderboard').select('*').order('total_xp', { ascending: false }).limit(50);
+    if (error) throw error;
+    lbStatut.textContent = `En ligne · ${data.length} chasseur${data.length > 1 ? 's' : ''} enregistré${data.length > 1 ? 's' : ''}`;
+    renderClassement(data);
+  } catch(e) {
+    liste.innerHTML = '<div style="text-align:center;padding:30px;color:var(--c-muted);font-family:var(--font-mono);font-size:11px">Impossible de charger le classement</div>';
+  }
+}
+
+function renderClassement(joueurs) {
+  const liste = document.getElementById('liste-classement');
+  if (!joueurs || !joueurs.length) {
+    liste.innerHTML = '<div style="text-align:center;padding:40px;color:var(--c-muted);font-family:var(--font-mono);font-size:11px;letter-spacing:2px">AUCUN CHASSEUR ENREGISTRÉ</div>';
+    return;
+  }
+  const medailles = ['🥇','🥈','🥉'];
+  const couleursRang = {E:'#94a3b8',D:'#60a5fa',C:'#34d399',B:'#a78bfa',A:'#fb923c',S:'#fbbf24','◈':'#e879f9'};
+
+  liste.innerHTML = joueurs.map((p, i) => {
+    const estMoi = p.username === G.pseudo;
+    const cr = couleursRang[p.rank || p.rang || 'E'] || '#94a3b8';
+    const ac = couleurAvatar(p.username);
+    const relics = p.relics || p.reliques || 0;
+    const streak = p.streak || p.serie || 0;
+    const xp = p.total_xp || p.xpTotal || p.xp || 0;
+    return `<div class="lb-row${estMoi ? ' moi' : ''}" style="background:${estMoi?'rgba(167,139,250,.05)':'rgba(255,255,255,.02)'}">
+      ${i < 3 ? `<div style="position:absolute;top:8px;right:10px;font-size:18px;opacity:.7">${medailles[i]}</div>` : ''}
+      <div style="font-size:18px;font-weight:900;font-family:var(--font-mono);min-width:28px;text-align:center;color:${i===0?'#fbbf24':i===1?'#94a3b8':i===2?'#fb923c':'#334155'}">${i + 1}</div>
+      <div class="lb-avatar" style="background:${ac}18;border-color:${ac}40;color:${ac}">${initiales(p.username)}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700">${p.username}${estMoi ? ' <span style="font-size:9px;color:var(--c-purple);font-family:var(--font-mono)">(vous)</span>' : ''}</div>
+        <div style="font-size:10px;font-family:var(--font-mono);color:${cr};margin-top:2px">Rang ${p.rank||p.rang||'E'} · Niv. ${p.level||p.niveau||1} · 🔥${streak}j · 💎${relics}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="lb-score-val" style="color:${cr}">${xp.toLocaleString('fr-FR')}</div>
+        <div class="lb-score-lbl">XP TOTAL</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHAT SUPABASE (REALTIME)
+// ═══════════════════════════════════════════════════════════════
+let messagesChat = [];
+let dernierIdChat = 0;
+
+async function initChat() {
+  const dot = document.getElementById('conn-dot');
+  const txt = document.getElementById('conn-txt');
+
+  if (modeLocal || !supabase) {
+    dot.classList.add('offline');
+    txt.textContent = 'Mode local · Pas de temps réel';
+    chargerChatLocal();
+    return;
+  }
+
+  try {
+    // Charger les derniers messages
+    const { data, error } = await supabase.from('sl_chat').select('*').order('created_at', { ascending: false }).limit(60);
+    if (error) throw error;
+    messagesChat = (data || []).reverse();
+    if (messagesChat.length) dernierIdChat = messagesChat[messagesChat.length - 1].id;
+    rendreMessages(messagesChat);
+    connecte = true;
+    dot.classList.remove('offline');
+    txt.textContent = `Connecté · ${messagesChat.length ? 'Messages chargés' : 'Aucun message'}`;
+
+    // Abonnement temps réel
+    if (abonnementChat) abonnementChat.unsubscribe();
+    abonnementChat = supabase
+      .channel('sl_chat_live')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sl_chat' }, (payload) => {
+        if (payload.new && payload.new.id !== dernierIdChat) {
+          messagesChat.push(payload.new);
+          if (messagesChat.length > 80) messagesChat.splice(0, messagesChat.length - 80);
+          dernierIdChat = payload.new.id;
+          rendreMessages(messagesChat);
+          // Badge si pas sur l'onglet chat
+          const tabActif = document.querySelector('.tab-btn.active');
+          if (tabActif && tabActif.dataset.tab !== 'chat') {
+            document.getElementById('badge-chat').style.display = 'flex';
+          }
+        }
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          dot.classList.remove('offline');
+          txt.textContent = 'En ligne · Temps réel actif';
+        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+          dot.classList.add('offline');
+          txt.textContent = 'Connexion perdue · Reconnexion...';
+          setTimeout(initChat, 5000);
+        }
+      });
+  } catch(e) {
+    dot.classList.add('offline');
+    txt.textContent = 'Erreur de connexion';
+    chargerChatLocal();
+  }
+}
+
+function chargerChatLocal() {
+  try {
+    const msgs = JSON.parse(localStorage.getItem('sl4_chat') || '[]');
+    rendreMessages(msgs);
+  } catch(e) {}
+}
+
+async function envoyerMessage() {
+  const input = document.getElementById('chat-input');
+  const texte = (input.value || '').trim();
+  if (!texte) return;
+  input.value = '';
+  input.style.height = '42px';
+
+  if (modeLocal || !supabase) {
+    // Mode local
+    try {
+      const msgs = JSON.parse(localStorage.getItem('sl4_chat') || '[]');
+      msgs.push({id: Date.now(), username:G.pseudo, rank:G.rang, level:G.niveau, message:texte, created_at:new Date().toISOString()});
+      if (msgs.length > 80) msgs.splice(0, msgs.length - 80);
+      localStorage.setItem('sl4_chat', JSON.stringify(msgs));
+      rendreMessages(msgs);
+    } catch(e) {}
+    return;
+  }
+
+  try {
+    const { error } = await supabase.from('sl_chat').insert({
+      username: G.pseudo,
+      rank: G.rang,
+      level: G.niveau,
+      message: texte,
+    });
+    if (error) throw error;
+  } catch(e) {
+    notifier('Impossible d\'envoyer le message', 'systeme', '💬');
+  }
+}
+
+function rendreMessages(msgs) {
+  const zone = document.getElementById('chat-zone');
+  if (!msgs || !msgs.length) {
+    zone.innerHTML = '<div class="msg-systeme">◈ SYSTÈME · Aucun message. Dites bonjour, Chasseur.</div>';
+    return;
+  }
+  const couleursRang = {E:'#94a3b8',D:'#60a5fa',C:'#34d399',B:'#a78bfa',A:'#fb923c',S:'#fbbf24','◈':'#e879f9'};
+  const atBottom = zone.scrollHeight - zone.scrollTop <= zone.clientHeight + 80;
+
+  zone.innerHTML = msgs.map((m, i) => {
+    const estMoi = m.username === G.pseudo;
+    const rang = m.rank || m.rang || 'E';
+    const niveau = m.level || m.niveau || 1;
+    const cr = couleursRang[rang] || '#94a3b8';
+    const ac = couleurAvatar(m.username);
+    const showNom = i === 0 || msgs[i-1].username !== m.username;
+    const ts = m.created_at ? new Date(m.created_at).getTime() : (m.ts || Date.now());
+    return `<div class="msg-wrap${estMoi ? ' moi' : ''}">
+      <div class="msg-avatar" style="background:${ac}18;border-color:${ac}35;color:${ac}">${initiales(m.username)}</div>
+      <div class="msg-body">
+        ${showNom ? `<div class="msg-pseudo" style="color:${cr}">${m.username} · Rang ${rang} Niv. ${niveau}</div>` : ''}
+        <div class="msg-bulle">${echapper(m.message || m.text || '')}</div>
+        <div class="msg-heure">${heureStr(ts)}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  if (atBottom) zone.scrollTop = zone.scrollHeight;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATION ONGLETS
+// ═══════════════════════════════════════════════════════════════
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    G.onglet = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => {
+      p.classList.remove('active');
+      p.style.display = '';
+    });
+    const page = document.getElementById('page-' + tab);
+    if (page) {
+      if (tab === 'chat') {
+        page.style.display = 'flex';
+        page.style.flexDirection = 'column';
+        page.style.padding = '0';
+        page.style.height = (document.getElementById('content').clientHeight) + 'px';
+        document.getElementById('badge-chat').style.display = 'none';
+        initChat();
+      } else {
+        page.style.display = 'block';
+      }
+      page.classList.add('active');
+    }
+    if (tab === 'quetes') afficherQuetes();
+    if (tab === 'reliques') afficherReliques();
+    if (tab === 'classement') chargerClassement();
+    sauvegarder();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// CHAT INPUT
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('chat-input').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+});
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); envoyerMessage(); }
+});
+document.getElementById('chat-envoyer').onclick = envoyerMessage;
+
+// ═══════════════════════════════════════════════════════════════
+// ONBOARDING
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('ob-confirmer').onclick = async () => {
+  const nom = (document.getElementById('ob-nom').value || '').trim();
+  const errEl = document.getElementById('ob-err');
+  errEl.style.display = 'none';
+  if (!nom || nom.length < 2) {
+    document.getElementById('ob-nom').style.borderColor = '#f87171';
+    errEl.textContent = 'Le nom doit contenir au moins 2 caractères';
+    errEl.style.display = 'block';
+    return;
+  }
+  // Vérifier unicité si Supabase dispo
+  if (supabase && !modeLocal) {
+    try {
+      const { data } = await supabase.from('sl_leaderboard').select('username').eq('username', nom).single();
+      if (data && data.username !== G.pseudo) {
+        errEl.textContent = 'Ce nom est déjà pris, choisissez-en un autre';
+        errEl.style.display = 'block';
+        document.getElementById('ob-nom').style.borderColor = '#f87171';
+        return;
+      }
+    } catch(e) {}
+  }
+  G.pseudo = nom;
+  const aujourd = new Date().toDateString();
+  const hier = new Date(Date.now() - 86400000).toDateString();
+  if (!G.dernierLogin) { G.serie = 1; G.dernierLogin = aujourd; }
+  else if (G.dernierLogin === hier) { G.serie++; G.dernierLogin = aujourd; }
+  else if (G.dernierLogin !== aujourd) { G.serie = 1; G.dernierLogin = aujourd; }
+  sauvegarder();
+  document.getElementById('onboard').style.transition = 'opacity .5s';
+  document.getElementById('onboard').style.opacity = '0';
+  setTimeout(() => {
+    document.getElementById('onboard').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    lancerApp();
+  }, 500);
+};
+document.getElementById('ob-nom').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('ob-confirmer').click();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// LANCEMENT DE L'APP
+// ═══════════════════════════════════════════════════════════════
+function lancerApp() {
+  const r = getRang(G.niveau);
+  document.documentElement.style.setProperty('--rank-color', r.couleur);
+  mettreAJourHeader();
+  afficherStats();
+  afficherQuetes();
+  mettreAJourApercuReliques();
+  verifierDeblocageReliques();
+  syncClassement();
+
+  setTimeout(() => notifier('Système initialisé. Bienvenue, Chasseur.', 'systeme', '👁'), 600);
+  if (G.serie > 1) setTimeout(() => notifier(`Série de ${G.serie} jours active !`, 'serie', '🔥'), 1400);
+  if (G.ptsStats > 0) setTimeout(() => notifier(`${G.ptsStats} points de stat disponibles !`, 'systeme', '⚡'), 2000);
+
+  // Revenir au dernier onglet
+  if (G.onglet && G.onglet !== 'statut') {
+    setTimeout(() => {
+      const btn = document.querySelector(`[data-tab="${G.onglet}"]`);
+      if (btn) btn.click();
+    }, 100);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DÉMARRAGE
+// ═══════════════════════════════════════════════════════════════
+async function demarrer() {
+  chargerLocal();
+
+  // Remise à zéro quotidiens si nouveau jour
+  const aujourd = new Date().toDateString();
+  if (G.dateQuotidiens && G.dateQuotidiens !== aujourd) {
+    G.quotidiensFaits = {};
+    G.dateQuotidiens = aujourd;
+    sauvegarder();
+  }
+
+  // Vérifier série login
+  const hier = new Date(Date.now() - 86400000).toDateString();
+  if (G.dernierLogin && G.dernierLogin !== aujourd && G.dernierLogin !== hier) {
+    G.serie = 0;
+    sauvegarder();
+  }
+
+  const supabaseOK = initSupabase();
+
+  // Masquer loading
+  document.getElementById('loading-overlay').style.display = 'none';
+
+  if (G.pseudo) {
+    // Utilisateur existant
+    document.getElementById('app').style.display = 'flex';
+    lancerApp();
+  } else if (!supabaseOK) {
+    // Pas de Supabase configuré
+    document.getElementById('config-screen').style.display = 'flex';
+  } else {
+    // Afficher l'onboarding
+    document.getElementById('onboard').style.display = 'flex';
+  }
+}
+
+// Lancer après chargement du DOM
+
+// Attendre que le SDK Supabase soit chargé avant de démarrer
+function attendreSupabaseEtDemarrer() {
+  if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+    demarrer();
+  } else {
+    setTimeout(attendreSupabaseEtDemarrer, 50);
+  }
+}
+window.addEventListener('DOMContentLoaded', () => {
+  // Timeout de sécurité : démarrer en mode local si SDK pas chargé en 5s
+  setTimeout(() => {
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay && overlay.style.display !== 'none') {
+      console.warn('SDK Supabase non chargé, démarrage en mode local');
+      window.supabase = null;
+      demarrer();
+    }
+  }, 5000);
+  attendreSupabaseEtDemarrer();
+});
+
+</script>
+</body>
+</html>
